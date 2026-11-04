@@ -1,5 +1,11 @@
 # tracket
 
+## 0.2.1
+
+### Patch Changes
+
+- [`af5be8a`](https://github.com/Hydhen/tracket/commit/af5be8ae273eee98a53010597419ed7f8b20b7a8) Thanks [@Hydhen](https://github.com/Hydhen)! - Keep settings, timers and the tree in a file shared by every build, so a development build sees the same configuration as the installed app. Your existing settings are moved over the first time this version starts.
+
 ## 0.2.0
 
 ### Minor Changes
