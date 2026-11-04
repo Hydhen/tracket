@@ -23,8 +23,8 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: jira: http://jira.localhost https://*.atlassian.net https://*.atlassian.com https://*.atl-paas.net https://*.gravatar.com; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
-      "devCsp": "default-src 'self' http://localhost:1420; script-src 'self' 'unsafe-inline' http://localhost:1420; style-src 'self' 'unsafe-inline' http://localhost:1420; img-src 'self' data: blob: jira: http://jira.localhost https://*.atlassian.net https://*.atlassian.com https://*.atl-paas.net https://*.gravatar.com; font-src 'self' data: http://localhost:1420; connect-src 'self' ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: jira: http://jira.localhost https://*.atlassian.net https://*.atlassian.com https://*.atl-paas.net https://*.gravatar.com https://i0.wp.com https://i1.wp.com https://i2.wp.com; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
+      "devCsp": "default-src 'self' http://localhost:1420; script-src 'self' 'unsafe-inline' http://localhost:1420; style-src 'self' 'unsafe-inline' http://localhost:1420; img-src 'self' data: blob: jira: http://jira.localhost https://*.atlassian.net https://*.atlassian.com https://*.atl-paas.net https://*.gravatar.com https://i0.wp.com https://i1.wp.com https://i2.wp.com; font-src 'self' data: http://localhost:1420; connect-src 'self' ipc: http://ipc.localhost http://localhost:1420 ws://localhost:1420; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
     }
   },
   "plugins": {
