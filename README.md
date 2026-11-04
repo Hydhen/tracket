@@ -80,20 +80,34 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 Stack: Tauri 2 (Rust), React 19, TypeScript, Vite, Tailwind CSS, TanStack Query, Zustand.
 
+### Release notes: changesets
+
+The notes on the release page are written as the work happens, with [Changesets](https://github.com/changesets/changesets).
+Every pull request that changes the app adds a changeset, a small file in `.changeset/` that says what changed in a
+sentence its users would understand:
+
+```bash
+npm run changeset            # pick minor for a feature, patch for a fix, then describe it
+npm run changeset -- --empty # for a change nobody will notice (docs, CI, refactor)
+```
+
+Commit the file with the change; it survives a squash merge. A check on the pull request fails without one when the
+app's code changed.
+
 ### Releasing
 
-Releases are automatic. Every push to `main` runs the **Release** workflow, which releases the version in the code if
-that version has no tag yet, and does nothing otherwise.
+Releases are automatic.
 
-1. Set the same new version in `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml` (the workflow
-   fails if they disagree), and push to `main`.
-2. The workflow lints and tests, then builds and signs the installer, publishes release `v<version>` with its
-   notes (generated from the merged changes), and checks that the release has the installer, its signature and a
-   valid `latest.json`.
+1. On every push to `main`, the **Changesets** workflow gathers the changesets that have landed into a **Release the
+   next version** pull request, and keeps it up to date. It raises the version in `package.json`,
+   `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`, and writes `CHANGELOG.md`.
+2. Merging that pull request is the release. The **Release** workflow sees a version that has no tag yet, lints and
+   tests, then builds and signs the installer, publishes `v<version>` with the changelog as its notes, and checks that
+   the release has the installer, its signature and a valid `latest.json`.
 3. Installed apps pick the update up from that `latest.json`.
 
-A push that doesn't change the version, or only touches the docs or the CI config, releases nothing.
-You can also run the workflow by hand from the **Actions** tab.
+Any other push to `main` releases nothing, since its version is already tagged. You can also run the **Release**
+workflow by hand from the **Actions** tab.
 
 Updates are signed with a key kept outside the repository. The public half is in `src-tauri/tauri.conf.json`; the
 private half and its password are the repository secrets `TAURI_SIGNING_PRIVATE_KEY` and

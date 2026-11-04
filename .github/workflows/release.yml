@@ -1,8 +1,9 @@
 name: Release
 
 # Every push to main whose version has not been released yet builds, signs and publishes it.
-# To ship a new version: raise it in package.json, src-tauri/tauri.conf.json and src-tauri/Cargo.toml
-# (all three must agree), and push. A push that doesn't change the version releases nothing.
+# The version is raised by merging the "Version Packages" pull request that changesets.yml keeps open: it gathers
+# the changesets, writes CHANGELOG.md and sets the same version in package.json, src-tauri/tauri.conf.json and
+# src-tauri/Cargo.toml (all three must agree). A push that doesn't change the version releases nothing.
 on:
   push:
     branches: [main]
@@ -14,7 +15,8 @@ on:
       - '.github/ISSUE_TEMPLATE/**'
       - '.github/dependabot.yml'
       - '.github/workflows/ci.yml'
-      - '.github/workflows/pages.yml'
+      - '.github/workflows/changesets.yml'
+      - '.changeset/**'
   workflow_dispatch:
 
 permissions:
@@ -135,6 +137,16 @@ jobs:
           Already installed? Tracket offers this update by itself.
 
           EOF
-            gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="v$VERSION" --jq .body
+            # What changed: the changesets of this version, gathered in CHANGELOG.md by the Version Packages pull request
+            changes="$(tr -d '\r' < CHANGELOG.md | awk -v v="$VERSION" '$0 == "## " v { found = 1; next } /^## / { found = 0 } found' \
+              | sed -e 's/^### Major Changes$/### Breaking changes/' -e 's/^### Minor Changes$/### New/' -e 's/^### Patch Changes$/### Fixes/')"
+            if [ -n "$(echo "$changes" | tr -d '[:space:]')" ]; then
+              echo "## What's changed"
+              echo
+              echo "$changes"
+            else
+              # A version that was released without a changeset
+              gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="v$VERSION" --jq .body
+            fi
           } > notes.md
           gh release edit "v$VERSION" --notes-file notes.md

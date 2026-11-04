@@ -1,0 +1,78 @@
+name: Changesets
+
+# What the release page says comes from changesets: one small file per feature or fix, written in the pull request
+# that makes the change (see .changeset/README.md).
+#
+# - On a pull request: the change must come with a changeset (or an empty one, saying it needs no release note).
+# - On main: the changesets that have landed are gathered into a "Version Packages" pull request, kept up to date
+#   on every push. It raises the version and writes CHANGELOG.md. Merging it releases that version (release.yml).
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: changesets-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  required:
+    name: Has a changeset
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check the pull request
+        # Dependency updates and the Version Packages pull request itself have nothing to describe
+        if: github.actor != 'dependabot[bot]' && !startsWith(github.head_ref, 'changeset-release/')
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          changed="$(git diff --name-only "origin/$BASE...HEAD")"
+
+          # Only a change to the app itself needs a note on the release page
+          if ! echo "$changed" | grep -Eq '^(src/|src-tauri/src/|src-tauri/capabilities/|index\.html$|public/)'; then
+            echo "::notice::This pull request doesn't change the app, so it needs no changeset."
+            exit 0
+          fi
+
+          if echo "$changed" | grep -E '^\.changeset/[^/]+\.md$' | grep -vq 'README\.md$'; then
+            echo "Found a changeset."
+            exit 0
+          fi
+
+          cat <<'EOF'
+          ::error title=Missing changeset::Add a changeset: run "npm run changeset", pick minor for a feature or patch for a fix, and describe the change for the people who use Tracket. If nobody will notice the change, run "npm run changeset -- --empty" instead. Commit the file it creates.
+          EOF
+          exit 1
+
+  version:
+    name: Version Packages pull request
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - run: npm ci
+
+      - uses: changesets/action@v2.1.2
+        with:
+          version-script: npm run version-packages
+          commit-message: Release the changes made since the last version
+          pr-title: Release the next version
+        env:
+          # Lets the changelog link each entry to its pull request
+          GITHUB_TOKEN: ${{ github.token }}
