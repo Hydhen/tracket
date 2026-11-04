@@ -1,33 +1,75 @@
 name: Release
 
-# Push a tag like v0.2.0 to build the installer. The release is created as a draft: review it, write
-# the notes, then publish it. Installed apps find the new version once it is published.
+# Every push to main whose version has not been released yet builds, signs and publishes it.
+# To ship a new version: raise it in package.json, src-tauri/tauri.conf.json and src-tauri/Cargo.toml
+# (all three must agree), and push. A push that doesn't change the version releases nothing.
 on:
   push:
-    tags: ['v*']
+    branches: [main]
+    paths-ignore:
+      - 'site/**'
+      - '**.md'
+      - 'LICENSE'
+      - 'LICENSES/**'
+      - 'branding/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/dependabot.yml'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  release:
-    runs-on: windows-latest
+  check:
+    name: Is there a version to release?
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
     steps:
       - uses: actions/checkout@v7
 
-      - name: The tag matches the version of the app
-        shell: bash
+      - id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          expected="${GITHUB_REF_NAME#v}"
+          version="$(node -p "require('./src-tauri/tauri.conf.json').version")"
           for found in \
             "$(node -p "require('./package.json').version")" \
-            "$(node -p "require('./src-tauri/tauri.conf.json').version")" \
             "$(grep -m1 '^version' src-tauri/Cargo.toml | cut -d'"' -f2)"; do
-            if [ "$found" != "$expected" ]; then
-              echo "::error::The tag $GITHUB_REF_NAME doesn't match the app version $found (package.json, tauri.conf.json and Cargo.toml must all say $expected)"
+            if [ "$found" != "$version" ]; then
+              echo "::error::The versions disagree: tauri.conf.json says $version but another file says $found. package.json, tauri.conf.json and Cargo.toml must all say the same."
               exit 1
             fi
           done
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" >/dev/null 2>&1; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::v$version is already released. Raise the version to ship something new."
+          else
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::v$version has not been released yet: building it."
+          fi
+
+  build:
+    name: Build and publish v${{ needs.check.outputs.version }}
+    needs: check
+    if: needs.check.outputs.release == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
         with:
@@ -42,23 +84,57 @@ jobs:
 
       - run: npm ci
 
+      # Nothing is released that doesn't pass what CI checks
+      - run: npm run lint
+      - run: npm run build
+      - run: cargo test --manifest-path src-tauri/Cargo.toml --lib
+
       - uses: tauri-apps/tauri-action@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           # Signs the update, so installed apps only accept what this repository built
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: Tracket ${{ github.ref_name }}
-          releaseDraft: true
+          tagName: v${{ env.VERSION }}
+          releaseName: Tracket v${{ env.VERSION }}
+          releaseCommitish: ${{ github.sha }}
+          releaseDraft: false
           prerelease: false
-          releaseBody: |
-            ## Install
 
-            Download **Tracket_*_x64-setup.exe** below and run it. Windows only.
+      # The installed apps update from latest.json: a release without it, or without a signature, would strand them
+      - name: Check the release can be installed and updated
+        shell: bash
+        run: |
+          assets="$(gh release view "v$VERSION" --json assets --jq '.assets[].name')"
+          echo "$assets"
+          for pattern in 'setup\.exe$' 'setup\.exe\.sig$' '^latest\.json$'; do
+            echo "$assets" | grep -Eq "$pattern" || { echo "::error::The release has no asset matching $pattern"; exit 1; }
+          done
+          gh release download "v$VERSION" --pattern latest.json --output latest.json
+          node -e "
+            const feed = JSON.parse(require('fs').readFileSync('latest.json', 'utf8'))
+            const win = feed.platforms?.['windows-x86_64'] ?? feed.platforms?.['windows-x86_64-nsis']
+            if (feed.version !== process.env.VERSION) throw new Error('latest.json says ' + feed.version)
+            if (!win?.signature || !win?.url) throw new Error('latest.json has no signed Windows download')
+            console.log('latest.json:', feed.version, win.url)
+          "
 
-            The installer isn't code-signed yet, so Windows SmartScreen may warn about an unknown publisher:
-            choose **More info**, then **Run anyway**. Updates inside the app are signed and verified.
+      - name: Write the release notes
+        shell: bash
+        run: |
+          {
+            cat <<'EOF'
+          ## Install
 
-            Already installed? Tracket offers this update by itself once the release is published.
+          Download **Tracket_*_x64-setup.exe** below and run it. Windows only.
+
+          The installer isn't code-signed yet, so Windows SmartScreen may warn about an unknown publisher:
+          choose **More info**, then **Run anyway**. Updates inside the app are signed and verified.
+
+          Already installed? Tracket offers this update by itself.
+
+          EOF
+            gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="v$VERSION" --jq .body
+          } > notes.md
+          gh release edit "v$VERSION" --notes-file notes.md
