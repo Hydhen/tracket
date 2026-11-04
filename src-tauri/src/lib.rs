@@ -30,6 +30,7 @@ pub fn run() {
             detail::get_issue,
             edit::get_description_source,
             edit::update_description,
+            edit::add_comment,
             transition::get_transitions,
             transition::transition_issue,
             fields::get_ticket_fields,

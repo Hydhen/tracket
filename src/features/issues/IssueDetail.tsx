@@ -1,6 +1,6 @@
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, ExternalLink, ListTree, Paperclip, Pencil } from 'lucide-react'
+import { ChevronRight, ExternalLink, ListTree, MessageSquarePlus, Paperclip, Pencil } from 'lucide-react'
 import { useContext, useState, type ReactNode } from 'react'
 import { JiraHtml } from '@/components/JiraHtml'
 import { Spinner } from '@/components/Spinner'
@@ -22,6 +22,7 @@ import { api, ApiError, type IssueSummary, type Person, type Worktree } from '@/
 import { copyText, useCopyPopup } from '@/lib/clipboard'
 import { formatDay, isOverdue, timeAgo } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+import { CommentEditor } from './CommentEditor'
 import { DescriptionEditor } from './DescriptionEditor'
 import { Icon } from './IssueList'
 import { isWideValue } from './fieldValue'
@@ -84,6 +85,7 @@ export function IssueDetail({
   // Collapsed by default: long threads would push everything else off screen
   const [commentsOpen, setCommentsOpen] = useState(false)
   const [editingDescription, setEditingDescription] = useState(false)
+  const [commenting, setCommenting] = useState(false)
 
   // Worktree + the chosen app (VS Code or herdr), in the folder of the project the ticket belongs to
   // The project the ticket belongs to says where to work: the metadata that identify projects are
@@ -389,15 +391,33 @@ export function IssueDetail({
           )}
 
           <section className="mt-8">
-            <button
-              onClick={() => setCommentsOpen((open) => !open)}
-              aria-expanded={commentsOpen}
-              className="-ml-1 mb-2 flex items-center gap-1 rounded px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
-            >
-              <ChevronRight className={cn('size-4 transition-transform', commentsOpen && 'rotate-90')} />
-              Comments · {comments.length}
-            </button>
-            {commentsOpen && comments.length === 0 && (
+            <div className="mb-2 flex items-center">
+              <button
+                onClick={() => setCommentsOpen((open) => !open)}
+                aria-expanded={commentsOpen}
+                className="-ml-1 flex items-center gap-1 rounded px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground"
+              >
+                <ChevronRight className={cn('size-4 transition-transform', commentsOpen && 'rotate-90')} />
+                Comments · {comments.length}
+              </button>
+              {!commenting && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto"
+                  onClick={() => {
+                    // The new comment is the point, so the thread opens with the editor
+                    setCommentsOpen(true)
+                    setCommenting(true)
+                  }}
+                >
+                  <MessageSquarePlus />
+                  Add comment
+                </Button>
+              )}
+            </div>
+            {commenting && <CommentEditor issueKey={issue.key} onDone={() => setCommenting(false)} />}
+            {commentsOpen && comments.length === 0 && !commenting && (
               <p className="text-sm text-muted-foreground">No comments yet.</p>
             )}
             <ul className="space-y-5">
