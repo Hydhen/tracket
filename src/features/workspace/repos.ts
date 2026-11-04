@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { persistStorage } from '@/lib/storage'
 import { MAX_CONDITIONS, PROJECT_FIELD, sameWhen, type Condition, type WorkProject } from './routing'
 
 export const PROJECT_KEY = /^[A-Z][A-Z0-9_]*$/
@@ -47,6 +48,7 @@ export const useProjects = create<ProjectsState>()(
     }),
     {
       name: 'tracket-repos',
+      storage: persistStorage,
       version: 3,
       partialize: (s) => ({ projects: s.projects }),
       // Before, a Jira project (and later also up to 2 fields) was linked to a repository: it is now

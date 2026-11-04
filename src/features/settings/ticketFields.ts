@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { persistStorage } from '@/lib/storage'
 
 /** Metadata the app knows how to show under a ticket's title, in the order of this list by default. */
 export const TICKET_FIELDS = [
@@ -115,6 +116,7 @@ export const useTicketFields = create<TicketFieldsState>()(
     }),
     {
       name: 'tracket-ticket-fields',
+      storage: persistStorage,
       version: 1,
       partialize: (s) => ({ fields: s.fields }),
       merge: (persisted, current) => ({

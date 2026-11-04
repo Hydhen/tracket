@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { persistStorage } from '@/lib/storage'
 import herdrLogo from '@/assets/launchers/herdr.svg'
 import vscodeLogo from '@/assets/launchers/vscode.svg'
 
@@ -41,6 +42,7 @@ export const useLauncher = create<LauncherState>()(
     }),
     {
       name: 'tracket-launcher',
+      storage: persistStorage,
       version: 1,
       partialize: (s) => ({ app: s.app }),
       // An app that isn't offered (stored data edited by hand, or removed later) falls back to the default

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { persistStorage } from '@/lib/storage'
 
 /** A field the bulk edit dialog starts with; the name is kept so it can be listed before Jira is asked. */
 export interface DefaultField {
@@ -40,6 +41,7 @@ export const useBulkDefaults = create<BulkDefaultsState>()(
     }),
     {
       name: 'tracket-bulk-fields',
+      storage: persistStorage,
       version: 1,
       partialize: (s) => ({ fields: s.fields }),
       // Keep only well-formed, distinct entries, in case the stored data was edited by hand

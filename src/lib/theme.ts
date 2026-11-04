@@ -1,11 +1,13 @@
 export type ThemePreference = 'system' | 'light' | 'dark'
 
+import { appStorage } from './storage'
+
 const STORAGE_KEY = 'tracket-theme'
 const systemDark = window.matchMedia('(prefers-color-scheme: dark)')
 
 export function getThemePreference(): ThemePreference {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = appStorage.getItem(STORAGE_KEY)
     if (stored === 'light' || stored === 'dark') return stored
   } catch {
     // storage unavailable: fall back to the system theme
@@ -21,8 +23,8 @@ function apply() {
 
 export function setThemePreference(preference: ThemePreference) {
   try {
-    if (preference === 'system') localStorage.removeItem(STORAGE_KEY)
-    else localStorage.setItem(STORAGE_KEY, preference)
+    if (preference === 'system') appStorage.removeItem(STORAGE_KEY)
+    else appStorage.setItem(STORAGE_KEY, preference)
   } catch {
     // the choice still applies for this session
   }

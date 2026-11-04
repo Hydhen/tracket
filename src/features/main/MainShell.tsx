@@ -26,6 +26,7 @@ import { useMovesController } from '@/features/transitions/useMovesController'
 import { IssueTree } from '@/features/tree/IssueTree'
 import { useRootIssues, useTreeState } from '@/features/tree/useTree'
 import { api, type IssueSummary, type Session } from '@/lib/api'
+import { appStorage } from '@/lib/storage'
 import { cn } from '@/lib/utils'
 
 const VIEW_KEY = 'tracket-view'
@@ -42,7 +43,7 @@ const VIEWS: { id: View; label: string; empty: string }[] = [
 
 function loadView(): View {
   try {
-    const saved = localStorage.getItem(VIEW_KEY)
+    const saved = appStorage.getItem(VIEW_KEY)
     return saved === 'closed' || saved === 'tree' ? saved : 'open'
   } catch {
     return 'open'
@@ -71,7 +72,8 @@ export function MainShell({ session }: { session: Session }) {
   const autoUpdates = useUpdates((s) => s.auto)
   const checkForUpdate = useUpdates((s) => s.check)
   useEffect(() => {
-    if (!autoUpdates) return
+    // A dev build must not offer to replace itself with the installed app's releases
+    if (!autoUpdates || import.meta.env.DEV) return
     const id = setTimeout(() => void checkForUpdate(false), 5000)
     return () => clearTimeout(id)
   }, [autoUpdates, checkForUpdate])
@@ -86,7 +88,7 @@ export function MainShell({ session }: { session: Session }) {
     setView(next)
     setSideKey(undefined)
     try {
-      if (next !== 'timers') localStorage.setItem(VIEW_KEY, next)
+      if (next !== 'timers') appStorage.setItem(VIEW_KEY, next)
     } catch {
       // the choice still applies for this session
     }

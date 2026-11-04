@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="t">
+  <title id="t">Tracket Dev: from faint to solid</title>
+  <defs>
+    <linearGradient id="g" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#F2481A"/>
+      <stop offset="1" stop-color="#FF7A2F"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#g)"/>
+  <!-- Dark chevrons, building up to solid -->
+  <g fill="none" stroke="#1C1511" stroke-width="92" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M262 340 L392 512 L262 684" stroke-opacity="0.32"/>
+    <path d="M458 340 L588 512 L458 684" stroke-opacity="0.64"/>
+    <path d="M654 340 L784 512 L654 684" stroke-opacity="1"/>
+  </g>
+</svg>

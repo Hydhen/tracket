@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { persistStorage } from '@/lib/storage'
 
 /** A stopwatch on one ticket. Running when `startedAt` is set; the clock keeps going while the app is closed. */
 export interface Timer {
@@ -57,6 +58,7 @@ export const useTimers = create<TimerState>()(
     }),
     {
       name: 'tracket-timers',
+      storage: persistStorage,
       version: 1,
       partialize: (s) => ({ timers: s.timers }),
       // Stored data can be damaged by hand: keep only well-formed timers

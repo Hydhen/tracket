@@ -72,11 +72,15 @@ Requirements: Node.js, Rust (1.90 or newer) and the [Tauri prerequisites](https:
 
 ```bash
 npm install
-npm run tauri dev      # run the app with hot reload
+npm run tauri dev      # run "Tracket Dev" with hot reload: own icon, runs next to the installed app
 npm run tauri build    # produce the installer
 npm run lint           # oxlint
 cargo test --manifest-path src-tauri/Cargo.toml
 ```
+
+`npm run tauri dev` adds `src-tauri/tauri.dev.conf.json`: its own identifier (so it runs alongside the installed app) and an icon of its own.
+It shares the installed app's configuration: the Jira login sits in the OS keychain under a fixed name, and settings,
+timers and the tree are kept in `%APPDATA%\com.tracket.app\state.json`. Signing out of one signs out of the other.
 
 Stack: Tauri 2 (Rust), React 19, TypeScript, Vite, Tailwind CSS, TanStack Query, Zustand.
 

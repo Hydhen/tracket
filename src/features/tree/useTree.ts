@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
+import { appStorage } from '@/lib/storage'
 import { api, type ApiError, type IssueList } from '@/lib/api'
 
 const ROOTS_KEY = 'tracket-tree-roots'
@@ -8,7 +9,7 @@ const ISSUE_KEY = /^[A-Z][A-Z0-9_]*-\d+$/
 
 function load(storageKey: string): string[] {
   try {
-    const raw: unknown = JSON.parse(localStorage.getItem(storageKey) ?? '[]')
+    const raw: unknown = JSON.parse(appStorage.getItem(storageKey) ?? '[]')
     // Keys end up in JQL, so only well-formed ones are accepted
     return Array.isArray(raw) ? raw.filter((k): k is string => typeof k === 'string' && ISSUE_KEY.test(k)) : []
   } catch {
@@ -18,7 +19,7 @@ function load(storageKey: string): string[] {
 
 function save(storageKey: string, keys: Iterable<string>) {
   try {
-    localStorage.setItem(storageKey, JSON.stringify([...keys]))
+    appStorage.setItem(storageKey, JSON.stringify([...keys]))
   } catch {
     // the tree still works for this session
   }

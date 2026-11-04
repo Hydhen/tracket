@@ -6,6 +6,7 @@ mod fields;
 mod jira;
 mod media;
 mod metadata;
+mod storage;
 mod transition;
 mod worklog;
 mod workspace;
@@ -19,6 +20,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(auth::build_http_client())
+        .manage(storage::Storage::default())
         .register_asynchronous_uri_scheme_protocol("jira", media::handle)
         .invoke_handler(tauri::generate_handler![
             auth::login,
@@ -40,6 +42,8 @@ pub fn run() {
             workspace::create_worktree,
             workspace::open_in_vscode,
             workspace::open_in_herdr,
+            storage::storage_load,
+            storage::storage_set,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

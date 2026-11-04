@@ -2,6 +2,7 @@ import { relaunch } from '@tauri-apps/plugin-process'
 import { check, type Update } from '@tauri-apps/plugin-updater'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { persistStorage } from '@/lib/storage'
 
 export type UpdateStatus =
   | { kind: 'idle' }
@@ -74,6 +75,7 @@ export const useUpdates = create<UpdateState>()(
     }),
     {
       name: 'tracket-updates',
+      storage: persistStorage,
       version: 1,
       partialize: (s) => ({ auto: s.auto }),
       merge: (persisted, current) => ({

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { persistStorage } from '@/lib/storage'
 
 const FIELD_KEY = /^[A-Za-z0-9_]+$/
 
@@ -31,6 +32,7 @@ export const useLearnedFields = create<LearnedFieldsState>()(
     }),
     {
       name: 'tracket-learned-fields',
+      storage: persistStorage,
       version: 1,
       partialize: (s) => ({ fields: s.fields }),
       // Keep only well-formed entries, in case the stored data was edited by hand
