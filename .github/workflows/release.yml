@@ -1,0 +1,64 @@
+name: Release
+
+# Push a tag like v0.2.0 to build the installer. The release is created as a draft: review it, write
+# the notes, then publish it. Installed apps find the new version once it is published.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The tag matches the version of the app
+        shell: bash
+        run: |
+          expected="${GITHUB_REF_NAME#v}"
+          for found in \
+            "$(node -p "require('./package.json').version")" \
+            "$(node -p "require('./src-tauri/tauri.conf.json').version")" \
+            "$(grep -m1 '^version' src-tauri/Cargo.toml | cut -d'"' -f2)"; do
+            if [ "$found" != "$expected" ]; then
+              echo "::error::The tag $GITHUB_REF_NAME doesn't match the app version $found (package.json, tauri.conf.json and Cargo.toml must all say $expected)"
+              exit 1
+            fi
+          done
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Signs the update, so installed apps only accept what this repository built
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: Tracket ${{ github.ref_name }}
+          releaseDraft: true
+          prerelease: false
+          releaseBody: |
+            ## Install
+
+            Download **Tracket_*_x64-setup.exe** below and run it. Windows only.
+
+            The installer isn't code-signed yet, so Windows SmartScreen may warn about an unknown publisher:
+            choose **More info**, then **Run anyway**. Updates inside the app are signed and verified.
+
+            Already installed? Tracket offers this update by itself once the release is published.

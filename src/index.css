@@ -1,0 +1,414 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.269 0 0);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+    --background: oklch(0.215 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.255 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.255 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.315 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.315 0 0);
+    --muted-foreground: oklch(0.74 0 0);
+    --accent: oklch(0.315 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 12%);
+    --input: oklch(1 0 0 / 18%);
+    --ring: oklch(0.556 0 0);
+    --chart-1: oklch(0.87 0 0);
+    --chart-2: oklch(0.556 0 0);
+    --chart-3: oklch(0.439 0 0);
+    --chart-4: oklch(0.371 0 0);
+    --chart-5: oklch(0.315 0 0);
+    --sidebar: oklch(0.255 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.315 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 12%);
+    --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  html {
+    @apply font-sans;
+    }
+  /* Tailwind resets buttons to the arrow cursor; clickable things should show the hand */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='tab'],
+  [role='option'],
+  summary,
+  select,
+  label[for] {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+/* Jira-rendered HTML (descriptions, comments) */
+.jira-html {
+  overflow-wrap: anywhere;
+}
+.jira-html img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.375rem;
+}
+/* Inline emoji and icons must stay text-sized */
+.jira-html img.emoji,
+.jira-html img[src*='/images/icons/'] {
+  display: inline;
+  height: 1.1em;
+  width: auto;
+  margin: 0;
+  border-radius: 0;
+}
+.jira-html .panel,
+.jira-html .code.panel {
+  margin: 0.75rem 0;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+.jira-html .panelContent,
+.jira-html .codeContent {
+  padding: 0.5rem 0.75rem;
+}
+.jira-html pre {
+  overflow-x: auto;
+}
+.jira-html table {
+  display: block;
+  overflow-x: auto;
+}
+.jira-html th,
+.jira-html td {
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.5rem;
+}
+
+/* Image loader: a placeholder box with a spinner until the image settles */
+.jira-html .jira-img-wrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: top;
+}
+.jira-html .jira-img-wrap[data-state='loading'] {
+  min-width: 14rem;
+  min-height: 8rem;
+  border-radius: 0.375rem;
+  background: var(--muted);
+}
+.jira-html .jira-img-wrap[data-state='loading'] img {
+  opacity: 0;
+}
+.jira-html .jira-img-wrap[data-state='loading']::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: -0.75rem 0 0 -0.75rem;
+  border: 2px solid var(--muted-foreground);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: jira-spin 0.8s linear infinite;
+}
+.jira-html .jira-img-wrap[data-state='error'] {
+  border: 1px dashed var(--border);
+  border-radius: 0.375rem;
+}
+.jira-html .jira-img-wrap[data-state='error'] img {
+  display: none;
+}
+.jira-html .jira-img-wrap[data-state='error']::after {
+  content: 'Image unavailable';
+  display: block;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+@keyframes jira-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Native controls and scrollbars follow the active theme */
+:root {
+  color-scheme: light;
+}
+:root.dark {
+  color-scheme: dark;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent) transparent;
+}
+
+/*
+ * Tree node folding. Each part reads its own data-open flag, so folding and unfolding run
+ * the same transitions in opposite directions (and nested nodes don't affect each other).
+ */
+.tree-head {
+  transition: padding-bottom 0.175s ease;
+}
+.tree-head[data-open='true'][data-progress='true'] {
+  padding-bottom: 12px;
+}
+
+.tree-chevron {
+  transition: transform 0.15s ease;
+}
+.tree-chevron[data-open='false'] {
+  transform: rotate(-90deg);
+}
+
+/* Segmented bar: 6px under an open row, a 2px hairline along its bottom edge when folded */
+.tree-bar {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+  margin: 2px 14px 0 var(--bar-inset);
+  border-radius: 3px;
+  overflow: hidden;
+  transition:
+    height 0.175s ease,
+    margin 0.175s ease,
+    gap 0.175s ease,
+    border-radius 0.175s ease;
+}
+.tree-bar[data-open='false'] {
+  gap: 1px;
+  height: 2px;
+  margin: 0;
+  border-radius: 0;
+}
+
+.tree-summary {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 0.175s ease,
+    opacity 0.125s ease;
+}
+.tree-summary[data-open='false'] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+/* Percentage shown in the row only while folded; starts at -4px to cancel the row's gap */
+.tree-pct {
+  max-width: 0;
+  margin-left: -4px;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    max-width 0.175s ease,
+    margin-left 0.175s ease,
+    opacity 0.15s ease;
+}
+.tree-pct[data-open='false'] {
+  max-width: 48px;
+  margin-left: 0;
+  opacity: 1;
+}
+
+/* Children: height collapses while they fade and shift up. Hidden (so out of the tab
+   order) only once the fold has finished, but immediately when unfolding. */
+.tree-list {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tree-list[data-open='false'] {
+  grid-template-rows: 0fr;
+}
+.tree-list > div {
+  min-height: 0;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  transition:
+    opacity 0.15s ease,
+    transform 0.2s ease,
+    visibility 0s linear 0s;
+}
+.tree-list[data-open='false'] > div {
+  opacity: 0;
+  transform: translateY(-8px);
+  visibility: hidden;
+  transition-delay: 0s, 0s, 0.2s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tree-head,
+  .tree-chevron,
+  .tree-bar,
+  .tree-summary,
+  .tree-pct,
+  .tree-list,
+  .tree-list > div {
+    transition: none;
+  }
+}
+
+/* Changing status by drag and drop */
+.status-edge-flow {
+  animation: status-edge-flow 1.2s linear infinite;
+}
+@keyframes status-edge-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+/* The row of a ticket that just moved */
+.row-flash {
+  animation: row-flash 1.4s ease-out;
+}
+@keyframes row-flash {
+  from {
+    background-color: oklch(0.55 0.15 150 / 0.4);
+  }
+}
+
+.move-toast {
+  animation: move-toast-in 0.25s ease-out;
+}
+@keyframes move-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* "Copied!": quick fade in, then a slow fade out ending as the popup is removed (2s) */
+.copied-popup {
+  animation: copied-fade 2s ease-out forwards;
+}
+@keyframes copied-fade {
+  from {
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-edge-flow,
+  .row-flash,
+  .move-toast,
+  .copied-popup {
+    animation: none;
+  }
+}

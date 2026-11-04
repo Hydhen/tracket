@@ -1,0 +1,31 @@
+[package]
+name = "tracket"
+version = "0.1.0"
+description = "Lightweight Jira issue tracker"
+authors = ["Hydhen"]
+license = "MIT"
+repository = "https://github.com/Hydhen/tracket"
+edition = "2024"
+rust-version = "1.90"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "tracket_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.12.5", features = [] }
+tauri-plugin-log = "2"
+reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls"] }
+keyring = { version = "3", features = ["windows-native"] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2.8.4"
+tauri-plugin-updater = "2.14.1"
+tauri-plugin-process = "2.4.0"
