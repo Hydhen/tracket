@@ -38,6 +38,7 @@ pub fn run() {
             metadata::get_edit_meta,
             metadata::update_issue_fields,
             metadata::search_assignable_users,
+            metadata::search_mentionable_users,
             worklog::add_worklog,
             workspace::check_repo,
             workspace::create_worktree,

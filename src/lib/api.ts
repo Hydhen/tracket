@@ -230,6 +230,9 @@ export const api = {
   /** People assignable in every one of the projects */
   searchAssignableUsers: (projectKeys: string[], query: string) =>
     call<User[]>('search_assignable_users', { projectKeys, query }),
+  /** People who can see the ticket, so who a comment on it can mention */
+  searchMentionableUsers: (key: string, query: string) =>
+    call<User[]>('search_mentionable_users', { key, query }),
   /** Checks a folder is a git repository; gives its main working tree and the branch new work starts from */
   checkRepo: (path: string) => call<RepoInfo>('check_repo', { path }),
   /** `<repo>/.claude/worktrees/<key>` on a branch named `<key>`, reused when it exists */

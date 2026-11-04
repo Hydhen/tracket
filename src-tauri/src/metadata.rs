@@ -534,6 +534,8 @@ struct RawUser {
     account_id: String,
     display_name: String,
     active: Option<bool>,
+    /// `atlassian` for people; apps and bots are something else
+    account_type: Option<String>,
     avatar_urls: Option<HashMap<String, String>>,
 }
 
@@ -569,6 +571,39 @@ pub async fn search_assignable_users(
     )
     .map_err(|_| AppError::new("invalidQuery", "Invalid search"))?;
 
+    fetch_users(&http, &credentials, url).await
+}
+
+/// People who can see the issue, so who can be mentioned in a comment on it, matching `query` on name or email.
+#[tauri::command]
+pub async fn search_mentionable_users(
+    http: tauri::State<'_, reqwest::Client>,
+    key: String,
+    query: String,
+) -> Result<Vec<User>> {
+    validate_key(&key)?;
+    let credentials = load_credentials()?
+        .ok_or_else(|| AppError::new("invalidCredentials", "You're not signed in"))?;
+
+    let url = Url::parse_with_params(
+        &format!("{}/rest/api/3/user/viewissue/search", credentials.site),
+        [
+            ("issueKey", key.as_str()),
+            ("query", query.trim()),
+            ("maxResults", MAX_USERS),
+        ],
+    )
+    .map_err(|_| AppError::new("invalidQuery", "Invalid search"))?;
+
+    fetch_users(&http, &credentials, url).await
+}
+
+/// The active people (not apps) of a Jira user search.
+async fn fetch_users(
+    http: &reqwest::Client,
+    credentials: &crate::auth::Credentials,
+    url: Url,
+) -> Result<Vec<User>> {
     let response = http
         .get(url)
         .basic_auth(&credentials.email, Some(&credentials.token))
@@ -585,6 +620,7 @@ pub async fn search_assignable_users(
     Ok(users
         .into_iter()
         .filter(|u| u.active != Some(false))
+        .filter(|u| u.account_type.as_deref().is_none_or(|t| t == "atlassian"))
         .map(|u| User {
             account_id: u.account_id,
             display_name: u.display_name,
