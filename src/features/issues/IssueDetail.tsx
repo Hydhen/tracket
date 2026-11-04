@@ -2,6 +2,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronRight, ExternalLink, ListTree, MessageSquarePlus, Paperclip, Pencil } from 'lucide-react'
 import { useContext, useState, type ReactNode } from 'react'
+import { useSession } from '@/features/auth/useSession'
 import { JiraHtml } from '@/components/JiraHtml'
 import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
@@ -86,6 +87,9 @@ export function IssueDetail({
   const [commentsOpen, setCommentsOpen] = useState(false)
   const [editingDescription, setEditingDescription] = useState(false)
   const [commenting, setCommenting] = useState(false)
+  const [editingComment, setEditingComment] = useState<string | null>(null)
+  // Jira only lets people edit their own comments
+  const myAccountId = useSession().data?.accountId
 
   // Worktree + the chosen app (VS Code or herdr), in the folder of the project the ticket belongs to
   // The project the ticket belongs to says where to work: the metadata that identify projects are
@@ -423,7 +427,7 @@ export function IssueDetail({
             <ul className="space-y-5">
               {/* Not rendered while collapsed, so their images aren't fetched either */}
               {(commentsOpen ? comments : []).map((c) => (
-                <li key={c.id} className="flex gap-3">
+                <li key={c.id} className="group/comment flex gap-3">
                   {c.author?.avatarUrl ? (
                     <img src={c.author.avatarUrl} alt="" className="mt-0.5 size-7 shrink-0 rounded-full" />
                   ) : (
@@ -436,8 +440,24 @@ export function IssueDetail({
                         {timeAgo(c.created)}
                         {c.updated !== c.created && ' · edited'}
                       </span>
+                      {editingComment !== c.id && myAccountId && c.author?.accountId === myAccountId && (
+                        <button
+                          onClick={() => setEditingComment(c.id)}
+                          title="Edit comment"
+                          aria-label="Edit comment"
+                          className="self-center rounded p-0.5 text-muted-foreground opacity-0 hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover/comment:opacity-100"
+                        >
+                          <Pencil className="size-3" />
+                        </button>
+                      )}
                     </div>
-                    <JiraHtml html={c.bodyHtml} site={site} className="mt-1" />
+                    {editingComment === c.id ? (
+                      <div className="mt-2">
+                        <CommentEditor issueKey={issue.key} commentId={c.id} onDone={() => setEditingComment(null)} />
+                      </div>
+                    ) : (
+                      <JiraHtml html={c.bodyHtml} site={site} className="mt-1" />
+                    )}
                   </div>
                 </li>
               ))}

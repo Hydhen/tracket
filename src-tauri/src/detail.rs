@@ -12,6 +12,7 @@ const DETAIL_FIELDS: &str =
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Person {
+    pub account_id: Option<String>,
     pub display_name: String,
     pub avatar_url: Option<String>,
 }
@@ -81,6 +82,7 @@ struct RawFields {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RawUser {
+    account_id: Option<String>,
     display_name: String,
     avatar_urls: Option<HashMap<String, String>>,
 }
@@ -140,6 +142,7 @@ struct RawRenderedComment {
 impl From<RawUser> for Person {
     fn from(raw: RawUser) -> Self {
         Self {
+            account_id: raw.account_id,
             display_name: raw.display_name,
             avatar_url: raw.avatar_urls.and_then(|mut urls| urls.remove("48x48")),
         }

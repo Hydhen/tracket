@@ -373,7 +373,7 @@ fn is_day(s: &str) -> bool {
 }
 
 /// Account ids are opaque (`5b10ac8d…`, or `557058:f58131cb-…` for older ones).
-fn is_account_id(s: &str) -> bool {
+pub(crate) fn is_account_id(s: &str) -> bool {
     !s.is_empty()
         && s.chars()
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, ':' | '-' | '_'))

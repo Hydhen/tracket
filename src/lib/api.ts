@@ -141,6 +141,7 @@ export interface IssueList {
 }
 
 export interface Person {
+  accountId: string | null
   displayName: string
   avatarUrl: string | null
 }
@@ -150,6 +151,12 @@ export interface Attachment {
   filename: string
   mimeType: string
   size: number
+}
+
+/** A comment ready to edit: its mentions are written `@Name` in `text`, `mentions` say who they are */
+export interface CommentSource {
+  text: string
+  mentions: { accountId: string; displayName: string }[]
 }
 
 export interface Comment {
@@ -219,6 +226,8 @@ export const api = {
   updateDescription: (key: string, text: string) => call<void>('update_description', { key, text }),
   /** `text` is Jira wiki markup */
   addComment: (key: string, text: string) => call<void>('add_comment', { key, text }),
+  getCommentSource: (key: string, id: string) => call<CommentSource>('get_comment_source', { key, id }),
+  updateComment: (key: string, id: string, text: string) => call<void>('update_comment', { key, id, text }),
   /** The extra fields (custom ones included) the ticket's Jira offers to show */
   getTicketFields: (key: string) => call<FieldRef[]>('get_ticket_fields', { key }),
   /** What the ticket holds in those fields, as strings to display (empty when unset) */

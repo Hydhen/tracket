@@ -1,7 +1,7 @@
 //! Editing issue fields.
 //!
-//! Descriptions and comments are read and written through REST API v2, where Jira exposes them as wiki
-//! markup text. API v3 would need the Atlassian Document Format (ADF), which has no plain-text form to edit.
+//! Descriptions are read and written through REST API v2, where Jira exposes them as wiki markup
+//! text. API v3 would need the Atlassian Document Format (ADF), which has no plain-text form to edit.
 
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -71,35 +71,6 @@ pub async fn update_description(
         .put(format!("{}/rest/api/2/issue/{key}", credentials.site))
         .basic_auth(&credentials.email, Some(&credentials.token))
         .json(&json!({ "fields": { "description": description } }))
-        .send()
-        .await
-        .map_err(AppError::network)?;
-    ensure_ok(response).await?;
-
-    Ok(())
-}
-
-/// Adds a comment (wiki markup) to the issue.
-#[tauri::command]
-pub async fn add_comment(
-    http: tauri::State<'_, reqwest::Client>,
-    key: String,
-    text: String,
-) -> Result<()> {
-    validate_key(&key)?;
-    if text.trim().is_empty() {
-        return Err(AppError::new("invalidQuery", "Write something to comment"));
-    }
-    let credentials = load_credentials()?
-        .ok_or_else(|| AppError::new("invalidCredentials", "You're not signed in"))?;
-
-    let response = http
-        .post(format!(
-            "{}/rest/api/2/issue/{key}/comment",
-            credentials.site
-        ))
-        .basic_auth(&credentials.email, Some(&credentials.token))
-        .json(&json!({ "body": text }))
         .send()
         .await
         .map_err(AppError::network)?;

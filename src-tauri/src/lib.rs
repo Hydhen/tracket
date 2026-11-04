@@ -1,4 +1,5 @@
 mod auth;
+mod comment;
 mod detail;
 mod edit;
 mod error;
@@ -30,7 +31,9 @@ pub fn run() {
             detail::get_issue,
             edit::get_description_source,
             edit::update_description,
-            edit::add_comment,
+            comment::add_comment,
+            comment::get_comment_source,
+            comment::update_comment,
             transition::get_transitions,
             transition::transition_issue,
             fields::get_ticket_fields,
