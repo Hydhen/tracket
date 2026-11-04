@@ -327,7 +327,12 @@
 }
 .tree-list > div {
   min-height: 0;
-  overflow: hidden;
+  /* "clip" (unlike "hidden") doesn't let a grid item shrink below its content, so say it:
+     long titles must truncate with an ellipsis instead of widening the tree */
+  min-width: 0;
+  /* Clips like "hidden" for the fold, but isn't a scroll container: the parent rows
+     inside stay pinned to the tree's own scroll area */
+  overflow: clip;
   opacity: 1;
   transform: translateY(0);
   visibility: visible;

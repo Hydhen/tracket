@@ -1,4 +1,5 @@
 import { ChevronDown, Columns2, X } from 'lucide-react'
+import { useLayoutEffect, useRef } from 'react'
 import type { CSSProperties, MouseEvent } from 'react'
 import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
@@ -24,6 +25,16 @@ interface TreeContext {
 const INDENT_PX = 16
 /** Left inset of the progress bar and its summary, before the per-depth indent */
 const BAR_INSET_PX = 46
+
+/**
+ * Where a row pins while its children scroll past: right under the rows of its ancestors, which are pinned too.
+ * Their height varies (an open parent shows a progress bar and summary), so each row publishes its own as
+ * `--head-<depth>` on its `<li>`, which its descendants inherit. Nothing re-renders when a height changes.
+ */
+const pinnedTop = (depth: number) =>
+  depth === 0
+    ? 0
+    : `calc(${Array.from({ length: depth }, (_, d) => `var(--head-${d}, 0px)`).join(' + ')})`
 
 function TreeNode({
   issue,
@@ -51,6 +62,19 @@ function TreeNode({
   const canOpenSide = issue.key !== ctx.selectedKey && issue.key !== ctx.sideKey
   const hasActions = canOpenSide || !!onRemove
 
+  const itemRef = useRef<HTMLLIElement>(null)
+  const headRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const item = itemRef.current
+    const head = headRef.current
+    if (!item || !head) return
+    const publish = () => item.style.setProperty(`--head-${depth}`, `${head.getBoundingClientRect().height}px`)
+    publish()
+    const observer = new ResizeObserver(publish)
+    observer.observe(head)
+    return () => observer.disconnect()
+  }, [depth])
+
   // Runs for a click anywhere on the row, bar and summary included (the inner buttons handle their own clicks and stop here)
   const row = useRowMoves(issue)
   const onRowClick = (e: MouseEvent) => {
@@ -62,8 +86,21 @@ function TreeNode({
   }
 
   return (
-    <li role="treeitem" aria-expanded={hasChildren ? open : undefined} aria-selected={issue.key === ctx.selectedKey}>
-      <div onClick={onRowClick} className="tree-head cursor-pointer border-b" data-open={open} data-progress={progress !== null}>
+    <li
+      ref={itemRef}
+      role="treeitem"
+      aria-expanded={hasChildren ? open : undefined}
+      aria-selected={issue.key === ctx.selectedKey}
+    >
+      {/* Pinned (on a solid background, so the rows scrolling under it don't show through) while its children are in view */}
+      <div
+        ref={headRef}
+        onClick={onRowClick}
+        className="tree-head sticky z-10 cursor-pointer border-b bg-background"
+        style={{ top: pinnedTop(depth) }}
+        data-open={open}
+        data-progress={progress !== null}
+      >
         <div
           {...row.dragProps}
           className={cn(
