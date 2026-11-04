@@ -111,9 +111,10 @@ jobs:
           for pattern in 'setup\.exe$' 'setup\.exe\.sig$' '^latest\.json$'; do
             echo "$assets" | grep -Eq "$pattern" || { echo "::error::The release has no asset matching $pattern"; exit 1; }
           done
-          gh release download "v$VERSION" --pattern latest.json --output latest.json
+          # Not into the workspace: tauri-action leaves its own latest.json there
+          gh release download "v$VERSION" --pattern latest.json --clobber --output "$RUNNER_TEMP/feed.json"
           node -e "
-            const feed = JSON.parse(require('fs').readFileSync('latest.json', 'utf8'))
+            const feed = JSON.parse(require('fs').readFileSync(process.env.RUNNER_TEMP + '/feed.json', 'utf8'))
             const win = feed.platforms?.['windows-x86_64'] ?? feed.platforms?.['windows-x86_64-nsis']
             if (feed.version !== process.env.VERSION) throw new Error('latest.json says ' + feed.version)
             if (!win?.signature || !win?.url) throw new Error('latest.json has no signed Windows download')
