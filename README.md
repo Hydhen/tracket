@@ -5,11 +5,8 @@ edit them in bulk, track time and post worklogs, and start working on a ticket i
 
 Windows only for now (the installer is built with NSIS and the app relies on WebView2).
 
-Website: <https://hydhen.github.io/tracket/>
-
-The website lives in [`site/`](site) (HTML, CSS and a little JavaScript, with no third-party requests: its fonts and
-its animation library, GSAP, are served from the site itself) and is published by the **Pages** workflow whenever that
-folder changes. GSAP is used by the website only, never by the app.
+Website: <https://hydhen.github.io/tracket-site/>, which lives in its own repository,
+[Hydhen/tracket-site](https://github.com/Hydhen/tracket-site). This repository contains the application only.
 
 ## Install
 
@@ -95,7 +92,7 @@ that version has no tag yet, and does nothing otherwise.
    valid `latest.json`.
 3. Installed apps pick the update up from that `latest.json`.
 
-A push that doesn't change the version, or only touches the website, the docs or the CI config, releases nothing.
+A push that doesn't change the version, or only touches the docs or the CI config, releases nothing.
 You can also run the workflow by hand from the **Actions** tab.
 
 Updates are signed with a key kept outside the repository. The public half is in `src-tauri/tauri.conf.json`; the

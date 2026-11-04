@@ -23,19 +23,10 @@ only to name the application that is opened.
 
 ## Fonts
 
-All under the SIL Open Font License 1.1, whose copyright notices are kept in `site/fonts/`.
+**Geist Variable**, via `@fontsource-variable/geist`, under the SIL Open Font License 1.1.
 
-- **Geist Variable**, via `@fontsource-variable/geist`: the app and the website.
-- **Martian Mono**, via `@fontsource-variable/martian-mono`: the website only.
-
-## Animation library (website only)
-
-**GSAP** and its **ScrollTrigger** plugin, version 3.15.1, Copyright GreenSock, under the GSAP "no charge" Standard
-License (<https://gsap.com/standard-license>). Their copyright notices are kept at the top of
-`site/vendor/gsap.min.js` and `site/vendor/ScrollTrigger.min.js`.
-
-GSAP is used only by the project's website in `site/`. The Tracket application does not include it: it isn't a
-dependency of the app, isn't in its source, and isn't in the installer.
+The website has its own repository, [Hydhen/tracket-site](https://github.com/Hydhen/tracket-site), with its own
+notices. Nothing from it is part of this repository or of the application.
 
 ## The Tracket icon
 
