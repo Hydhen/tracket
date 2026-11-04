@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="t">
+  <title id="t">Tracket</title>
+  <rect width="1024" height="1024" rx="232" fill="#14181F"/>
+  <!-- A T, as the top and the stem of a ticket -->
+  <rect x="236" y="268" width="552" height="124" rx="34" fill="#F2F4F1"/>
+  <rect x="450" y="268" width="124" height="504" rx="34" fill="#F2F4F1"/>
+  <!-- The running timer -->
+  <circle cx="724" cy="708" r="76" fill="#FF5A1F"/>
+</svg>

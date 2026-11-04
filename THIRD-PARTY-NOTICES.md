@@ -23,4 +23,12 @@ only to name the application that is opened.
 
 ## Fonts
 
-Geist Variable, via `@fontsource-variable/geist`, under the SIL Open Font License 1.1.
+All under the SIL Open Font License 1.1, whose copyright notices are kept in `site/fonts/`.
+
+- **Geist Variable**, via `@fontsource-variable/geist`: the app and the website.
+- **Martian Mono**, via `@fontsource-variable/martian-mono`: the website only.
+
+## The Tracket icon
+
+`branding/icon.svg`, and the icons generated from it in `src-tauri/icons`, are original to this project and
+covered by its MIT license.

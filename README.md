@@ -5,6 +5,11 @@ edit them in bulk, track time and post worklogs, and start working on a ticket i
 
 Windows only for now (the installer is built with NSIS and the app relies on WebView2).
 
+Website: <https://hydhen.github.io/tracket/>
+
+The website lives in [`site/`](site) (plain HTML and CSS, no third-party requests) and is published by the **Pages**
+workflow whenever that folder changes.
+
 ## Install
 
 Download `Tracket_<version>_x64-setup.exe` from the [latest release](https://github.com/Hydhen/tracket/releases/latest)
