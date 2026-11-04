@@ -7,8 +7,9 @@ Windows only for now (the installer is built with NSIS and the app relies on Web
 
 Website: <https://hydhen.github.io/tracket/>
 
-The website lives in [`site/`](site) (plain HTML and CSS, no third-party requests) and is published by the **Pages**
-workflow whenever that folder changes.
+The website lives in [`site/`](site) (HTML, CSS and a little JavaScript, with no third-party requests: its fonts and
+its animation library, GSAP, are served from the site itself) and is published by the **Pages** workflow whenever that
+folder changes. GSAP is used by the website only, never by the app.
 
 ## Install
 

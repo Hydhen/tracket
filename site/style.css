@@ -148,7 +148,7 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 28px;
+  margin-top: 24px;
 }
 
 .button {
@@ -184,7 +184,7 @@ a {
 /* ---------- Hero ---------- */
 
 .hero {
-  padding-block: clamp(36px, 7vw, 88px) clamp(56px, 8vw, 112px);
+  padding-block: clamp(20px, 3.5vw, 48px) clamp(56px, 8vw, 112px);
 }
 
 .facts {
@@ -200,7 +200,7 @@ a {
 h1 {
   max-width: 17ch;
   margin: 0;
-  font-size: clamp(2.5rem, 7vw, 5rem);
+  font-size: clamp(2.5rem, 6.2vw, 4.5rem);
   font-weight: 640;
   line-height: 1.02;
   letter-spacing: -0.04em;
@@ -208,7 +208,7 @@ h1 {
 
 .lead {
   max-width: 54ch;
-  margin: 24px 0 0;
+  margin: 20px 0 0;
   font-size: clamp(1.0625rem, 2vw, 1.25rem);
   color: var(--ink-2);
 }
@@ -222,7 +222,7 @@ h1 {
 /* The demo: one ticket, picked up. Its final state is the default; the script plays the way there. */
 
 .stage {
-  margin-top: clamp(40px, 6vw, 72px);
+  margin-top: clamp(32px, 4.5vw, 56px);
   padding: clamp(20px, 4vw, 40px);
   background: var(--paper);
   border: 1px solid var(--rule);
@@ -262,8 +262,29 @@ h1 {
   width: 10px;
   height: 10px;
   border-radius: 50%;
+  background: var(--todo);
+}
+
+.clock.is-running .clock__dot {
   background: var(--live);
   animation: pulse 2s ease-in-out infinite;
+}
+
+.stage__side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+/* Shown only while the demo plays: "the time was logged" */
+.stage__toast {
+  min-height: 1.5em;
+  margin: 0;
+  font-family: var(--mono);
+  font-size: clamp(0.6875rem, 1.8vw, 0.8125rem);
+  color: var(--done);
+  opacity: 0;
 }
 
 @keyframes pulse {
@@ -301,8 +322,17 @@ h1 {
   width: calc((100% - 8px) / 3);
   border-radius: 10px;
   background: var(--doing);
-  transform: translateX(100%);
-  transition: transform 0.7s cubic-bezier(0.65, 0, 0.25, 1), background-color 0.7s ease;
+  /* --i is the stop it sits on: 0 to do, 1 in progress, 2 done. The script moves it */
+  transform: translateX(calc(var(--i, 1) * 100%));
+  transition: background-color 0.7s ease;
+}
+
+.rail__thumb[data-stage='todo'] {
+  background: var(--todo);
+}
+
+.rail__thumb[data-stage='done'] {
+  background: var(--done);
 }
 
 .rail__stop {
@@ -313,7 +343,7 @@ h1 {
   transition: color 0.4s ease 0.2s;
 }
 
-.rail__stop:nth-child(3) {
+.rail__stop.is-active {
   color: #fff;
 }
 
@@ -326,7 +356,6 @@ h1 {
   font-size: clamp(0.6875rem, 1.9vw, 0.9375rem);
   color: var(--ink-2);
   overflow-wrap: anywhere;
-  transition: opacity 0.6s ease 0.5s;
 }
 
 .stage__prompt {
@@ -338,26 +367,63 @@ h1 {
   color: var(--ink);
 }
 
-/* Before the ticket is picked up (only when the script is going to move it) */
-.js .stage:not(.is-live) .rail__thumb {
-  transform: translateX(0);
-  background: var(--todo);
+.stage__cmd.is-typing::after {
+  content: '';
+  display: inline-block;
+  width: 0.55em;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: -0.2em;
+  background: var(--ink);
+  animation: blink 0.9s steps(2, start) infinite;
 }
 
-.js .stage:not(.is-live) .rail__stop:nth-child(2) {
-  color: #fff;
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
 }
 
-.js .stage:not(.is-live) .rail__stop:nth-child(3) {
-  color: var(--ink-2);
+/* ---------- Motion hooks: only when the script is going to animate (.js) ---------- */
+
+/* The page, read from top to bottom, is a ticket going from to do, through in progress, to done */
+.progress {
+  display: none;
 }
 
-.js .stage:not(.is-live) .clock__dot {
-  background: var(--todo);
-  animation: none;
+.js .progress {
+  display: block;
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 50;
+  height: 3px;
+  pointer-events: none;
 }
 
-.js .stage:not(.is-live) .stage__shell {
+.progress__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--todo), var(--doing) 50%, var(--done));
+  clip-path: inset(0 100% 0 0);
+}
+
+/* Headline lines rise out of a mask. The padding keeps descenders inside it. */
+.line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+
+.line > span {
+  display: block;
+}
+
+.js .line > span {
+  opacity: 0;
+}
+
+.js [data-intro],
+.js .reveal {
   opacity: 0;
 }
 

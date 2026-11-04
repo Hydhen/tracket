@@ -24,9 +24,14 @@
     <link rel="preload" href="fonts/martian-mono-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="style.css" />
     <script src="main.js"></script>
+    <script src="vendor/gsap.min.js" defer></script>
+    <script src="vendor/ScrollTrigger.min.js" defer></script>
+    <script src="motion.js" defer></script>
   </head>
 
   <body>
+    <div class="progress" aria-hidden="true"><div class="progress__fill"></div></div>
+
     <header class="wrap top">
       <a class="brand" href="./">
         <img class="brand__icon" src="favicon.svg" alt="" width="32" height="32" />
@@ -42,37 +47,44 @@
 
     <main>
       <section class="wrap hero">
-        <p class="facts">Jira Cloud · Windows · Open source</p>
-        <h1>Your Jira tickets, without the browser tab.</h1>
-        <p class="lead">
+        <p class="facts" data-intro>Jira Cloud · Windows · Open source</p>
+        <h1>
+          <span class="line"><span>Your Jira tickets,</span></span>
+          <span class="line"><span>without the browser tab.</span></span>
+        </h1>
+        <p class="lead" data-intro>
           Tracket is a small Windows app for Jira Cloud. Move tickets through their workflow, track the time you spend,
           and start work on a ticket in its own git worktree.
         </p>
-        <div class="buttons">
+        <div class="buttons" data-intro>
           <a class="button button--primary" href="https://github.com/Hydhen/tracket/releases/latest">Download for Windows</a>
           <a class="button button--plain" href="https://github.com/Hydhen/tracket">View the source</a>
         </div>
-        <p class="small">Free, MIT-licensed. Windows 10 and 11.</p>
+        <p class="small" data-intro>Free, MIT-licensed. Windows 10 and 11.</p>
 
         <div
           class="stage"
+          data-intro
           role="img"
           aria-label="Example: the ticket ABC-123 moves from To do to In progress, its timer starts running, and a git worktree named after the ticket is created."
         >
           <div class="stage__top" aria-hidden="true">
             <div class="stage__key">ABC-123</div>
-            <div class="clock"><span class="clock__dot"></span><span class="clock__time" data-clock>00:47:12</span></div>
+            <div class="stage__side">
+              <div class="clock is-running"><span class="clock__dot"></span><span class="clock__time" data-clock>00:47:12</span></div>
+              <p class="stage__toast">Logged 47 min to ABC-123</p>
+            </div>
           </div>
           <p class="stage__title" aria-hidden="true">Export fails when the file name has an accent</p>
           <div class="rail" aria-hidden="true">
-            <div class="rail__thumb"></div>
+            <div class="rail__thumb" data-stage="doing"></div>
             <span class="rail__stop">To do</span>
-            <span class="rail__stop">In progress</span>
+            <span class="rail__stop is-active">In progress</span>
             <span class="rail__stop">Done</span>
           </div>
           <p class="stage__shell" aria-hidden="true">
             <span class="stage__prompt">$</span>
-            <span>git worktree add .claude/worktrees/ABC-123</span>
+            <span class="stage__cmd">git worktree add .claude/worktrees/ABC-123</span>
             <span class="stage__opens">→ opens in VS Code</span>
           </p>
         </div>
@@ -80,11 +92,11 @@
 
       <section class="section" id="what">
         <div class="wrap">
-          <h2>What a ticket needs between assigned and done</h2>
-          <p class="intro">Each part sits where it belongs in a ticket's life.</p>
+          <h2 class="reveal">What a ticket needs between assigned and done</h2>
+          <p class="intro reveal">Each part sits where it belongs in a ticket's life.</p>
 
           <ul class="rows">
-            <li class="row">
+            <li class="row reveal">
               <div class="row__label tag tag--todo">To do</div>
               <div>
                 <h3 class="row__title">Find the ticket</h3>
@@ -94,7 +106,7 @@
                 </p>
               </div>
             </li>
-            <li class="row">
+            <li class="row reveal">
               <div class="row__label tag tag--doing">In progress</div>
               <div>
                 <h3 class="row__title">Start working in one click</h3>
@@ -105,7 +117,7 @@
                 <code class="row__code">.claude/worktrees/ABC-123</code>
               </div>
             </li>
-            <li class="row">
+            <li class="row reveal">
               <div class="row__label tag tag--doing">In progress</div>
               <div>
                 <h3 class="row__title">Track time on several tickets at once</h3>
@@ -115,7 +127,7 @@
                 </p>
               </div>
             </li>
-            <li class="row">
+            <li class="row reveal">
               <div class="row__label tag tag--done">Done</div>
               <div>
                 <h3 class="row__title">Move tickets, one or many</h3>
@@ -131,54 +143,54 @@
 
       <section class="section section--band" id="data">
         <div class="wrap">
-          <h2>Your token stays on your computer.</h2>
-          <p class="intro">Tracket talks to your Jira site. That is the whole list.</p>
+          <h2 class="reveal">Your token stays on your computer.</h2>
+          <p class="intro reveal">Tracket talks to your Jira site. That is the whole list.</p>
 
           <ul class="rows">
-            <li class="row">
+            <li class="row reveal">
               <div class="row__label">Token</div>
               <p class="row__text">In the Windows Credential Manager. The interface never gets to see it.</p>
             </li>
-            <li class="row">
+            <li class="row reveal">
               <div class="row__label">On disk</div>
               <p class="row__text">Timers, settings and linked folders: ticket keys and field choices, never titles or descriptions.</p>
             </li>
-            <li class="row">
+            <li class="row reveal">
               <div class="row__label">Network</div>
               <p class="row__text">Your Jira site, and github.com to look for updates. No analytics, no crash reports.</p>
             </li>
-            <li class="row">
+            <li class="row reveal">
               <div class="row__label">Attachments</div>
               <p class="row__text">Shown, not stored. Nothing is cached to disk.</p>
             </li>
-            <li class="row">
+            <li class="row reveal">
               <div class="row__label">Sign out</div>
               <p class="row__text">Erases the token and everything else the app kept on this computer.</p>
             </li>
           </ul>
-          <a class="more" href="https://github.com/Hydhen/tracket#your-data">Read the details in the README →</a>
+          <a class="more reveal" href="https://github.com/Hydhen/tracket#your-data">Read the details in the README →</a>
         </div>
       </section>
 
       <section class="section" id="start">
         <div class="wrap">
-          <h2>Ready in three steps</h2>
+          <h2 class="reveal">Ready in three steps</h2>
           <ol class="steps">
-            <li class="step">
+            <li class="step reveal">
               <h3>Download and install</h3>
               <p>
                 Get the installer from the latest release. Windows may warn about an unknown publisher, because the installer
                 isn't code-signed yet: choose <strong>More info</strong>, then <strong>Run anyway</strong>.
               </p>
             </li>
-            <li class="step">
+            <li class="step reveal">
               <h3>Create an API token</h3>
               <p>
                 In your Atlassian account, create a token for Tracket. You can revoke it from the same page whenever you
                 like.
               </p>
             </li>
-            <li class="step">
+            <li class="step reveal">
               <h3>Sign in</h3>
               <p>Enter your site (<code>acme</code> or <code>acme.atlassian.net</code>), your email and the token.</p>
             </li>
@@ -192,8 +204,8 @@
 
       <section class="section" id="questions">
         <div class="wrap">
-          <h2>Questions</h2>
-          <div class="faq">
+          <h2 class="reveal">Questions</h2>
+          <div class="faq reveal">
             <details>
               <summary>Does it work with Jira Server or Data Center?</summary>
               <p>No. Tracket uses the Jira Cloud API, so it needs a site on Atlassian Cloud.</p>
@@ -230,7 +242,7 @@
         <li><a href="https://github.com/Hydhen/tracket/blob/main/THIRD-PARTY-NOTICES.md">Third-party notices</a></li>
       </ul>
       <p>This page sets no cookies, runs no analytics and loads nothing from other sites.</p>
-      <p>© 2026 Hydhen. Set in Geist and Martian Mono, both under the SIL Open Font License.</p>
+      <p>© 2026 Hydhen. Set in Geist and Martian Mono (SIL Open Font License), animated with GSAP.</p>
     </footer>
   </body>
 </html>
