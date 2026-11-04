@@ -1,9 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="t">
-  <title id="t">Tracket</title>
-  <rect width="1024" height="1024" rx="232" fill="#14181F"/>
-  <!-- A T, as the top and the stem of a ticket -->
-  <rect x="236" y="268" width="552" height="124" rx="34" fill="#F2F4F1"/>
-  <rect x="450" y="268" width="124" height="504" rx="34" fill="#F2F4F1"/>
-  <!-- The running timer -->
-  <circle cx="724" cy="708" r="76" fill="#FF5A1F"/>
+  <title id="t">Tracket: the current stage, lit</title>
+  <defs>
+    <radialGradient id="glow" cx="719" cy="512" r="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF5A1F" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#FF5A1F" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="#1C1511"/>
+  <rect width="1024" height="1024" rx="232" fill="url(#glow)"/>
+  <rect x="16" y="16" width="992" height="992" rx="218" fill="none" stroke="#5A4535" stroke-width="12"/>
+  <g fill="none" stroke-width="92" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M262 340 L392 512 L262 684" stroke="#7A5E48"/>
+    <path d="M458 340 L588 512 L458 684" stroke="#D08850"/>
+    <path d="M654 340 L784 512 L654 684" stroke="#FFB27A"/>
+  </g>
 </svg>

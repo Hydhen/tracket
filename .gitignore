@@ -36,3 +36,5 @@ src-tauri/gen
 *.p12
 .claude/
 herdr-shot.png
+
+branding/options/
