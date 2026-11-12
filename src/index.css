@@ -267,6 +267,22 @@
   stroke: var(--spinner-3);
   animation-delay: 0.3s;
 }
+/* The same chevrons, not moving (the title bar) */
+.spinner-mark path {
+  fill: none;
+  stroke-width: 92;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.spinner-mark path:nth-child(1) {
+  stroke: var(--spinner-1);
+}
+.spinner-mark path:nth-child(2) {
+  stroke: var(--spinner-2);
+}
+.spinner-mark path:nth-child(3) {
+  stroke: var(--spinner-3);
+}
 @keyframes spinner-relay {
   0%,
   60%,

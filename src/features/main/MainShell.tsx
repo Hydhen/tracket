@@ -197,7 +197,7 @@ export function MainShell({ session }: { session: Session }) {
   return (
     <TicketActionsContext.Provider value={{ openInSide: (key) => openByKey(key, true), linkRepo: openSettings }}>
     <TicketMovesContext.Provider value={moves}>
-      <div className="flex h-screen bg-background text-foreground">
+      <div className="flex h-full bg-background text-foreground">
         <aside className="flex w-96 flex-col border-r">
           <button
             onClick={() => setPalette('open')}
