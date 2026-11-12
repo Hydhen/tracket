@@ -251,6 +251,8 @@ export const api = {
   openInHerdr: (folder: string, name: string, prompt: string) =>
     call<HerdrLaunch>('open_in_herdr', { folder, name, prompt }),
   /** `started` in Jira's timestamp format, see `jiraTimestamp` */
+  /** Shrinks the window to the timer pill (always on top), or puts it back */
+  setMini: (on: boolean) => call<void>(on ? 'enter_mini' : 'leave_mini'),
   addWorklog: (key: string, seconds: number, started: string, comment?: string) =>
     call<void>('add_worklog', { key, seconds, started, comment }),
 }

@@ -1,6 +1,7 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { Copy, Minus, Square, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
+import { TimerNotch } from '@/features/timer/TimerNotch'
 import { cn } from '@/lib/utils'
 
 const inTauri = '__TAURI_INTERNALS__' in window
@@ -69,7 +70,7 @@ export function TitleBar() {
   return (
     <div
       data-tauri-drag-region
-      className="flex h-9 shrink-0 select-none items-center border-b bg-background text-foreground"
+      className="relative flex h-9 shrink-0 select-none items-center border-b bg-background text-foreground"
     >
       <div data-tauri-drag-region className="flex items-center gap-2 pl-3.5">
         {/* Children of the drag region are not draggable unless they say so */}
@@ -81,7 +82,9 @@ export function TitleBar() {
         </span>
       </div>
 
-      <div className="ml-auto flex h-full">
+      <TimerNotch />
+
+      <div className="relative ml-auto flex h-full">
         <ControlButton label="Minimize" onClick={() => void win.minimize()}>
           <Minus className="size-4" />
         </ControlButton>

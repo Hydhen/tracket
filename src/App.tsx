@@ -1,9 +1,13 @@
+import { useEffect } from 'react'
 import { Spinner } from '@/components/Spinner'
 import { TitleBar } from '@/components/TitleBar'
 import { Button } from '@/components/ui/button'
 import { LoginScreen } from '@/features/auth/LoginScreen'
 import { useSession } from '@/features/auth/useSession'
 import { MainShell } from '@/features/main/MainShell'
+import { MiniNotch } from '@/features/timer/MiniNotch'
+import { useMiniMode } from '@/features/timer/miniMode'
+import { cn } from '@/lib/utils'
 
 /** What the window shows under its title bar. */
 function Screen() {
@@ -35,12 +39,21 @@ function Screen() {
 }
 
 export default function App() {
+  const mini = useMiniMode((s) => s.mini)
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-mini', mini)
+  }, [mini])
+
   return (
-    <div className="flex h-screen flex-col bg-background text-foreground">
-      <TitleBar />
-      <div className="min-h-0 flex-1">
-        <Screen />
+    <>
+      {mini && <MiniNotch />}
+      {/* Hidden, not removed, while mini: what the person was doing is still there when it's back */}
+      <div className={cn('flex h-screen flex-col bg-background text-foreground', mini && 'hidden')}>
+        <TitleBar />
+        <div className="min-h-0 flex-1">
+          <Screen />
+        </div>
       </div>
-    </div>
+    </>
   )
 }
