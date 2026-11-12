@@ -6,6 +6,7 @@ import { emptyDraft, fieldProblem, toChange, type Draft } from '@/features/bulk/
 import { FieldEditor } from '@/features/bulk/fieldEditors'
 import type { EditField, FieldChange, IssueSummary } from '@/lib/api'
 import type { MoveInput } from './transitions'
+import type { RememberedInput } from './useMovesController'
 
 type Status = IssueSummary['status']
 
@@ -30,6 +31,8 @@ export function TransitionInputDialog({
   target,
   input,
   me,
+  remembered,
+  onRemember,
   onSubmit,
   onCancel,
 }: {
@@ -37,15 +40,25 @@ export function TransitionInputDialog({
   target: Status
   input: MoveInput
   me: { accountId: string; displayName: string }
+  /** What was typed in an earlier try of this move, which hasn't gone through yet */
+  remembered?: RememberedInput
+  /** Called with everything typed, so Jira asking for more doesn't mean typing it all again */
+  onRemember: (kept: RememberedInput) => void
   onSubmit: (changes: FieldChange[]) => void
   onCancel: () => void
 }) {
-  const [drafts, setDrafts] = useState<Record<string, Draft>>({})
+  const [drafts, setDrafts] = useState<Record<string, Draft>>(remembered?.drafts ?? {})
   // Fields of the screen added by the user, in the order they were added
-  const [added, setAdded] = useState<string[]>([])
+  const [added, setAdded] = useState<string[]>(remembered?.added ?? [])
   const draftOf = (key: string) => drafts[key] ?? emptyDraft
 
-  const rows = [...input.fields, ...added.flatMap((key) => input.optional.find((f) => f.key === key) ?? [])]
+  useEffect(() => onRemember({ drafts, added }), [drafts, added, onRemember])
+
+  // A field Jira has since asked for is already among the required ones
+  const rows = [
+    ...input.fields,
+    ...added.flatMap((key) => (input.fields.some((f) => f.key === key) ? [] : (input.optional.find((f) => f.key === key) ?? []))),
+  ]
   const changes = rows.map((field) => filled(field, draftOf(field.key), issues))
   const canMove = changes.every((change) => change !== null) && input.unsupported.length === 0
   const started = Object.keys(drafts).length > 0 || added.length > 0

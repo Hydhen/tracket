@@ -410,6 +410,8 @@ export function MainShell({ session }: { session: Session }) {
             target={input.target}
             input={input.needed}
             me={{ accountId: session.accountId, displayName: session.displayName }}
+            remembered={input.remembered}
+            onRemember={movesController.rememberInput}
             onSubmit={movesController.submitInput}
             onCancel={movesController.cancelInput}
           />

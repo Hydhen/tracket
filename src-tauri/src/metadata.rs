@@ -457,9 +457,11 @@ pub(crate) fn edit_body(changes: &[FieldChange]) -> Result<Value> {
                 if *seconds < 60 {
                     return Err(invalid("time spent"));
                 }
+                // As Jira documents logging work in a transition: the duration as text. Its
+                // validator ("Time Spent is required") doesn't see `timeSpentSeconds` there.
                 update.insert(
                     key.clone(),
-                    json!([{ "add": { "timeSpentSeconds": seconds } }]),
+                    json!([{ "add": { "timeSpent": format!("{}m", seconds / 60) } }]),
                 );
             }
             Op::Modify { items, add, remove } => {
@@ -691,7 +693,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             edit_body(&work).unwrap(),
-            json!({ "update": { "worklog": [{ "add": { "timeSpentSeconds": 5400 } }] } })
+            json!({ "update": { "worklog": [{ "add": { "timeSpent": "90m" } }] } })
         );
         let short: Vec<FieldChange> = serde_json::from_value(
             json!([{ "key": "worklog", "op": "addWorklog", "seconds": 30 }]),

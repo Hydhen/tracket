@@ -9,6 +9,7 @@ import {
   type IssueSummary,
   type Transition,
 } from '@/lib/api'
+import type { Draft } from '@/features/bulk/edits'
 import { editMetaQuery } from '@/features/bulk/sharedFields'
 import { summarizeChildren } from '@/features/tree/progress'
 import { childrenQuery } from '@/features/tree/useTree'
@@ -48,6 +49,17 @@ export interface MoveToast {
   retry?: () => void
 }
 
+/** What was typed in the move's dialog, kept until the tickets have moved. */
+export interface RememberedInput {
+  drafts: Record<string, Draft>
+  /** Fields of the screen the user added to the dialog */
+  added: string[]
+}
+
+/** Which move a dialog belongs to: the same tickets going to the same status. */
+const moveKey = (issues: IssueSummary[], target: Status) =>
+  `${issues.map((i) => i.key).sort().join(',')}>${target.id}`
+
 export interface MoveConfirm {
   issues: IssueSummary[]
   target: Status
@@ -77,7 +89,16 @@ export function useMovesController({
   // The tickets whose fields are being edited in the bulk edit dialog
   const [editing, setEditing] = useState<IssueSummary[] | null>(null)
   // A move that Jira won't accept as it is: what it asks for, to be filled in a dialog
-  const [input, setInput] = useState<{ issues: IssueSummary[]; target: Status; needed: MoveInput } | null>(null)
+  const [input, setInput] = useState<{
+    issues: IssueSummary[]
+    target: Status
+    needed: MoveInput
+    remembered?: RememberedInput
+  } | null>(null)
+  // Jira can ask for more after each try: what the user already filled in stays until the move is done
+  const remembered = useRef(new Map<string, RememberedInput>())
+  const openInput = (issues: IssueSummary[], target: Status, needed: MoveInput) =>
+    setInput({ issues, target, needed, remembered: remembered.current.get(moveKey(issues, target)) })
   // Kept after the drag ends so the overlay doesn't change content while it fades out
   const [dragged, setDragged] = useState<IssueSummary[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -185,7 +206,7 @@ export function useMovesController({
       return () => {
         window.clearTimeout(timers.current.toast)
         setToast(null)
-        setInput({ issues, target, needed })
+        openInput(issues, target, needed)
       }
     } catch {
       return undefined
@@ -210,6 +231,20 @@ export function useMovesController({
           useLearnedFields.getState().learn(transitionId(issue.projectKey, done.transition.id), keys)
         }
       }
+    }
+
+    // Tickets that moved need nothing more; the ones Jira refused keep what was filled in for the retry
+    const key = moveKey(issues, target)
+    const kept = remembered.current.get(key)
+    remembered.current.delete(key)
+    if (kept && failed.length > 0) {
+      remembered.current.set(
+        moveKey(
+          failed.map((f) => f.issue),
+          target,
+        ),
+        kept,
+      )
     }
 
     // Tickets Jira refused go back to where they were
@@ -305,7 +340,7 @@ export function useMovesController({
     } catch {
       // can't tell: try the move, and Jira's own message will say what is missing
     }
-    if (needed) setInput({ issues, target, needed })
+    if (needed) openInput(issues, target, needed)
     else await execute(issues, target)
   }
 
@@ -432,5 +467,9 @@ export function useMovesController({
       if (pending) void execute(pending.issues, pending.target, changes, !!pending.needed.reason)
     },
     cancelInput: () => setInput(null),
+    /** Keeps what is typed in the dialog, in case Jira asks for more or the dialog is closed */
+    rememberInput: (kept: RememberedInput) => {
+      if (input) remembered.current.set(moveKey(input.issues, input.target), kept)
+    },
   }
 }
