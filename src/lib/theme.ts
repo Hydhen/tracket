@@ -1,5 +1,6 @@
 export type ThemePreference = 'system' | 'light' | 'dark'
 
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { appStorage } from './storage'
 
 const STORAGE_KEY = 'tracket-theme'
@@ -15,10 +16,26 @@ export function getThemePreference(): ThemePreference {
   return 'system'
 }
 
+const inTauri = '__TAURI_INTERNALS__' in window
+let nativeTheme: ThemePreference | undefined
+
+/** The window's own chrome (title bar) follows the choice too; "system" hands it back to Windows. */
+function syncNativeTheme(preference: ThemePreference) {
+  if (!inTauri || preference === nativeTheme) return
+  nativeTheme = preference
+  getCurrentWindow()
+    .setTheme(preference === 'system' ? null : preference)
+    .catch(() => {
+      // cosmetic only: the title bar keeps following Windows
+      nativeTheme = undefined
+    })
+}
+
 function apply() {
   const preference = getThemePreference()
   const dark = preference === 'dark' || (preference === 'system' && systemDark.matches)
   document.documentElement.classList.toggle('dark', dark)
+  syncNativeTheme(preference)
 }
 
 export function setThemePreference(preference: ThemePreference) {
