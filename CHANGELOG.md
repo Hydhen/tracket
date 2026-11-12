@@ -1,5 +1,13 @@
 # tracket
 
+## 0.4.0
+
+### Minor Changes
+
+- [#8](https://github.com/Hydhen/tracket/pull/8) [`e66b244`](https://github.com/Hydhen/tracket/commit/e66b244e1c856120b96d8df4073724fd3c6a1484) Thanks [@Hydhen](https://github.com/Hydhen)! - The window has its own title bar, in the colours of the app, with the logo, the title and the window buttons. Drag it to move the window and double-click it to maximise.
+
+- [#8](https://github.com/Hydhen/tracket/pull/8) [`e66b244`](https://github.com/Hydhen/tracket/commit/e66b244e1c856120b96d8df4073724fd3c6a1484) Thanks [@Hydhen](https://github.com/Hydhen)! - While a timer runs, a rounded notch in the middle of the title bar shows a red light and the running time. Point at it and a button shrinks the whole window to that notch, which stays on top of the other windows; a button on it brings the app back.
+
 ## 0.3.0
 
 ### Minor Changes
