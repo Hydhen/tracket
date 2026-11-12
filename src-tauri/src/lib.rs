@@ -7,6 +7,7 @@ mod fields;
 mod jira;
 mod media;
 mod metadata;
+mod mini;
 mod storage;
 mod transition;
 mod worklog;
@@ -20,7 +21,7 @@ const SHOW_WINDOW_AFTER: std::time::Duration = std::time::Duration::from_secs(3)
 /// the app's, for the system theme, in case the first frames come before the page paints.
 /// If the page never reports being loaded, the window shows after `SHOW_WINDOW_AFTER` all the same.
 fn show_window_when_ready(app: &tauri::App) {
-    use tauri::{Manager, Theme, window::Color};
+    use tauri::Manager;
 
     let Some(window) = app.get_webview_window("main") else {
         return;
@@ -30,10 +31,7 @@ fn show_window_when_ready(app: &tauri::App) {
         std::thread::sleep(SHOW_WINDOW_AFTER);
         let _ = late.show();
     });
-    let background = match window.theme() {
-        Ok(Theme::Dark) => Color(25, 25, 25, 255),
-        _ => Color(255, 255, 255, 255),
-    };
+    let background = mini::app_background(&window);
     // A cosmetic touch: the app works the same without it
     let _ = window.set_background_color(Some(background));
 }
@@ -48,6 +46,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(auth::build_http_client())
         .manage(storage::Storage::default())
+        .manage(mini::MiniMode::default())
         .register_asynchronous_uri_scheme_protocol("jira", media::handle)
         .invoke_handler(tauri::generate_handler![
             auth::login,
@@ -75,6 +74,8 @@ pub fn run() {
             workspace::open_in_herdr,
             storage::storage_load,
             storage::storage_set,
+            mini::enter_mini,
+            mini::leave_mini,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

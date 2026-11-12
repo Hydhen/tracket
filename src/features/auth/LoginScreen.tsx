@@ -22,7 +22,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
   const error = login.error?.message ?? initialError
 
   return (
-    <div className="flex h-screen items-center justify-center bg-background p-6 text-foreground">
+    <div className="flex h-full items-center justify-center bg-background p-6 text-foreground">
       <form onSubmit={submit} className="w-full max-w-sm space-y-5">
         <div>
           <h1 className="text-2xl font-semibold">Tracket</h1>
