@@ -11,7 +11,8 @@
         "fullscreen": false,
         "minWidth": 720,
         "minHeight": 480,
-        "dragDropEnabled": false
+        "dragDropEnabled": false,
+        "visible": false
       }
     ]
   },

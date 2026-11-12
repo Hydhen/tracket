@@ -9,7 +9,7 @@ export default function App() {
 
   if (isPending) {
     return <div className="flex h-screen items-center justify-center">
-        <Spinner className="size-5" />
+        <Spinner className="size-10" />
       </div>
   }
 

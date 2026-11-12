@@ -233,6 +233,56 @@
   }
 }
 
+/* The loading spinner: the logo's chevrons, brightest = the current stage. The ramp is the logo's own
+   on dark; on light its pale end would vanish, so it goes darker towards the ember orange. */
+:root {
+  --spinner-1: #d8c0ae;
+  --spinner-2: #e8955c;
+  --spinner-3: #e0561a;
+}
+:root.dark {
+  --spinner-1: #7a5e48;
+  --spinner-2: #d08850;
+  --spinner-3: #ffb27a;
+}
+.spinner {
+  flex-shrink: 0;
+  overflow: visible;
+}
+.spinner path {
+  fill: none;
+  stroke-width: 92;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: spinner-relay 1.2s ease-in-out infinite;
+}
+.spinner path:nth-child(1) {
+  stroke: var(--spinner-1);
+}
+.spinner path:nth-child(2) {
+  stroke: var(--spinner-2);
+  animation-delay: 0.15s;
+}
+.spinner path:nth-child(3) {
+  stroke: var(--spinner-3);
+  animation-delay: 0.3s;
+}
+@keyframes spinner-relay {
+  0%,
+  60%,
+  100% {
+    opacity: 0.22;
+  }
+  25% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner path {
+    animation: none;
+  }
+}
+
 /* Native controls and scrollbars follow the active theme */
 :root {
   color-scheme: light;

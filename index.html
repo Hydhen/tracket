@@ -5,9 +5,79 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Tracket</title>
+    <!-- The loader shown while the app's code starts: no script and no bundled CSS needed, so it
+         paints as soon as the page does. It follows the system theme (the saved choice isn't known
+         yet), and React replaces it with the app's own spinner, which sits in the same place and has the same size. -->
+    <style>
+      #boot {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        --boot-1: #d8c0ae;
+        --boot-2: #e8955c;
+        --boot-3: #e0561a;
+      }
+      @media (prefers-color-scheme: dark) {
+        #boot {
+          background: #191919;
+          --boot-1: #7a5e48;
+          --boot-2: #d08850;
+          --boot-3: #ffb27a;
+        }
+      }
+      #boot svg {
+        width: 2.5rem;
+        height: 2.5rem;
+        overflow: visible;
+      }
+      #boot path {
+        fill: none;
+        stroke-width: 92;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        animation: boot-relay 1.2s ease-in-out infinite;
+      }
+      #boot path:nth-child(1) {
+        stroke: var(--boot-1);
+      }
+      #boot path:nth-child(2) {
+        stroke: var(--boot-2);
+        animation-delay: 0.15s;
+      }
+      #boot path:nth-child(3) {
+        stroke: var(--boot-3);
+        animation-delay: 0.3s;
+      }
+      @keyframes boot-relay {
+        0%,
+        60%,
+        100% {
+          opacity: 0.22;
+        }
+        25% {
+          opacity: 1;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #boot path {
+          animation: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="boot">
+        <svg role="img" aria-label="Loading" viewBox="212 290 628 444">
+          <path d="M262 340 L392 512 L262 684" />
+          <path d="M458 340 L588 512 L458 684" />
+          <path d="M654 340 L784 512 L654 684" />
+        </svg>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
