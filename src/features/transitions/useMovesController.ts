@@ -67,7 +67,7 @@ export interface MoveToast {
   revert?: () => void
 }
 
-/** Where a drag started: the lists move and edit tickets, the board hands them out. */
+/** Where a drag started: tickets dragged from the board can also be dropped on the Open list, to take them. */
 export type DragSource = 'list' | 'board'
 
 export interface AssignConfirm {
@@ -611,8 +611,6 @@ export function useMovesController({
         setDragged(group)
         setDragSource(source)
         setIsDragging(true)
-        // Tickets dragged from the board only go to the Open list: nothing to prefetch
-        if (source === 'board') return
         // A mixed group can't move together, so only a group in one status needs its transitions
         const sameStatus = group.every((i) => i.status.id === group[0].status.id)
         group.forEach((i) => {
@@ -621,8 +619,9 @@ export function useMovesController({
         })
       }, 0)
       window.clearTimeout(timers.current.overlay)
-      // The overlay is for moving and editing tickets, which tickets taken from the board aren't about
-      if (source === 'list') timers.current.overlay = window.setTimeout(() => setOverlayOpen(true), OVERLAY_DELAY_MS)
+      // Tickets dragged from the board can be moved, edited and assigned like the ones of the lists: the overlay covers
+      // the board, and the Open list (outside it) stays a drop target for taking them
+      timers.current.overlay = window.setTimeout(() => setOverlayOpen(true), OVERLAY_DELAY_MS)
     },
     endDrag,
     move: (issues, target) => void requestMove(issues, target),
