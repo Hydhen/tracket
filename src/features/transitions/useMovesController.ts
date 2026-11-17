@@ -5,12 +5,16 @@ import {
   ApiError,
   type Choice,
   type FieldChange,
+  type IssueDetail,
   type IssueList,
   type IssueSummary,
+  type Person,
   type Transition,
 } from '@/lib/api'
+import { BOARD_ISSUES } from '@/features/board/useBoard'
 import type { Draft } from '@/features/bulk/edits'
 import { editMetaQuery } from '@/features/bulk/sharedFields'
+import { viewJql } from '@/features/issues/useIssues'
 import { summarizeChildren } from '@/features/tree/progress'
 import { childrenQuery } from '@/features/tree/useTree'
 import { transitionId, useLearnedFields } from './learnedFields'
@@ -25,8 +29,10 @@ type Status = IssueSummary['status']
 type Patches = Record<string, Partial<IssueSummary>>
 
 /** Caches holding lists of issues, whose copies of a ticket must show its new status. */
-const LIST_QUERIES = ['issues', 'search', 'children', 'tree-roots']
+const LIST_QUERIES = ['issues', 'search', 'children', 'tree-roots', BOARD_ISSUES]
 const isListQuery = (key: readonly unknown[]) => LIST_QUERIES.includes(key[0] as string)
+/** The lists of the sidebar's tabs: the Open and Closed lists, and the tree's roots */
+const isSidebarQuery = (key: readonly unknown[]) => key[0] === 'issues' || key[0] === 'tree-roots'
 
 // Don't flash the overlay for a quick drag that is only meant to reorder or cancel
 const OVERLAY_DELAY_MS = 150
@@ -47,7 +53,20 @@ export interface MoveToast {
   failedUrl?: string
   /** Fill in more fields of the move's screen and try again, when Jira asked for something it hadn't said */
   retry?: () => void
+  /** Puts back what the toast reports (an assignment): Undo does it instead of undoing a move */
+  revert?: () => void
 }
+
+/** Where a drag started: the lists move and edit tickets, the board hands them out. */
+export type DragSource = 'list' | 'board'
+
+export interface AssignConfirm {
+  issues: IssueSummary[]
+  lines: string[]
+}
+
+const isMine = (issue: IssueSummary, me: Person) => issue.assignee?.accountId === me.accountId
+const countOf = (issues: IssueSummary[]) => (issues.length > 1 ? `${issues.length} tickets` : issues[0].key)
 
 /** What was typed in the move's dialog, kept until the tickets have moved. */
 export interface RememberedInput {
@@ -79,10 +98,13 @@ const messageOf = (reason: unknown) => (reason instanceof Error ? reason.message
 export function useMovesController({
   selected,
   patchLocal,
+  me,
 }: {
   /** The ticket open in the detail pane: the first member of a group started with Ctrl+click */
   selected: IssueSummary | undefined
   patchLocal: (patches: Patches) => void
+  /** Who tickets get assigned to */
+  me: Person
 }) {
   const queryClient = useQueryClient()
   const [marked, setMarked] = useState<IssueSummary[]>([])
@@ -106,6 +128,9 @@ export function useMovesController({
   const [flash, setFlash] = useState<string[]>([])
   const [toast, setToast] = useState<MoveToast | null>(null)
   const [confirm, setConfirm] = useState<MoveConfirm | null>(null)
+  // Taking tickets over from someone else asks first
+  const [assignConfirm, setAssignConfirm] = useState<AssignConfirm | null>(null)
+  const [dragSource, setDragSource] = useState<DragSource>('list')
   const timers = useRef<Record<'overlay' | 'flash' | 'toast' | 'sync', number | undefined>>({
     overlay: undefined,
     flash: undefined,
@@ -148,7 +173,12 @@ export function useMovesController({
     keys.forEach((key) => queryClient.removeQueries({ queryKey: ['transitions', key] }))
     window.clearTimeout(timers.current.sync)
     timers.current.sync = window.setTimeout(() => {
-      queryClient.invalidateQueries({ predicate: (q) => isListQuery(q.queryKey) || q.queryKey[0] === 'issue' })
+      queryClient.invalidateQueries({
+        predicate: (q) => (isListQuery(q.queryKey) || q.queryKey[0] === 'issue') && !isSidebarQuery(q.queryKey),
+      })
+      // The sidebar's tabs (Open, Closed, Tree) are reloaded even when not showing, so none of them
+      // is out of date when the person switches to it: it appears already right, with nothing loading
+      queryClient.invalidateQueries({ predicate: (q) => isSidebarQuery(q.queryKey), refetchType: 'all' })
     }, SYNC_DELAY_MS)
   }
 
@@ -352,7 +382,14 @@ export function useMovesController({
 
   const undo = async () => {
     const current = toast
-    if (!current || current.moved.length === 0) return
+    if (!current) return
+    if (current.revert) {
+      window.clearTimeout(timers.current.toast)
+      setToast(null)
+      current.revert()
+      return
+    }
+    if (current.moved.length === 0) return
     window.clearTimeout(timers.current.toast)
     setToast(null)
 
@@ -367,6 +404,136 @@ export function useMovesController({
       )
     }
     scheduleSync(current.moved.map((i) => i.key))
+  }
+
+  /**
+   * The Open and Closed lists hold what is assigned to the user (by status category): tickets join or
+   * leave them as soon as they are handed out or taken back, whichever tab is showing.
+   */
+  const syncAssignedLists = (issues: IssueSummary[]) => {
+    const keys = new Set(issues.map((i) => i.key))
+    for (const [view, done] of [['open', false], ['closed', true]] as const) {
+      queryClient.setQueryData<IssueList>(['issues', viewJql(view)], (old) => {
+        if (!old) return old
+        const joining = issues.filter((i) => isMine(i, me) && (i.status.category === 'done') === done)
+        return { ...old, issues: [...joining, ...old.issues.filter((i) => !keys.has(i.key))] }
+      })
+    }
+  }
+
+  /**
+   * Gives each ticket the person `to` says (nobody unassigns). They show it at once, and go back to what
+   * `from` says when Jira refuses.
+   */
+  const setAssignees = async (
+    issues: IssueSummary[],
+    to: (issue: IssueSummary) => Person | null,
+    from: (issue: IssueSummary) => Person | null,
+  ) => {
+    setMarked([])
+    // What is shown is the truth once Jira has said yes: Jira's search takes too long to take the change
+    // in for the lists to be reloaded from it right after, so they are not. The board, the Open and Closed
+    // lists, the tree and the ticket's detail are all changed here.
+    const show = (list: IssueSummary[], who: (issue: IssueSummary) => Person | null) => {
+      applyPatches(Object.fromEntries(list.map((i) => [i.key, { assignee: who(i) }])))
+      syncAssignedLists(list.map((i) => ({ ...i, assignee: who(i) })))
+      for (const i of list) {
+        queryClient.setQueriesData<IssueDetail>({ queryKey: ['issue', i.key] }, (old) =>
+          old ? { ...old, assignee: who(i) } : old,
+        )
+      }
+    }
+    // A list being reloaded right now would answer with what Jira had before: it would put the
+    // tickets back where they were
+    await queryClient.cancelQueries({ predicate: (q) => isListQuery(q.queryKey) })
+    show(issues, to)
+
+    const results = await Promise.allSettled(issues.map((i) => api.assignIssue(i.key, to(i)?.accountId ?? null)))
+    const ok: IssueSummary[] = []
+    const failed: { issue: IssueSummary; message: string }[] = []
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') ok.push(issues[i])
+      else failed.push({ issue: issues[i], message: `${issues[i].key}: ${messageOf(result.reason)}` })
+    })
+
+    if (failed.length > 0) {
+      show(
+        failed.map((f) => f.issue),
+        from,
+      )
+    }
+    if (ok.length > 0) flashRows(ok.map((i) => i.key))
+    // No reload from Jira: see above
+    return { ok, failed }
+  }
+
+  /** `issues` are as they were: Undo gives each one back to who had it (`was` is who has them now). */
+  const undoAssignment = async (issues: IssueSummary[], was: Person | null) => {
+    const { failed } = await setAssignees(
+      issues,
+      (i) => i.assignee,
+      () => was,
+    )
+    if (failed.length > 0) {
+      showToast({ moved: [], errors: failed.map((f) => f.message), failedUrl: failed[0].issue.url }, ERROR_TOAST_MS)
+    }
+  }
+
+  const reportAssignment = (
+    ok: IssueSummary[],
+    failed: { issue: IssueSummary; message: string }[],
+    what: string,
+    now: Person | null,
+  ) =>
+    showToast(
+      {
+        moved: [],
+        message: ok.length > 0 ? `${countOf(ok)} ${what}` : undefined,
+        errors: failed.map((f) => f.message),
+        failedUrl: failed[0]?.issue.url,
+        revert: ok.length > 0 ? () => void undoAssignment(ok, now) : undefined,
+      },
+      failed.length > 0 ? ERROR_TOAST_MS : TOAST_MS,
+    )
+
+  const assignToMe = async (issues: IssueSummary[]) => {
+    const { ok, failed } = await setAssignees(
+      issues,
+      () => me,
+      (i) => i.assignee,
+    )
+    reportAssignment(ok, failed, 'assigned to you', me)
+  }
+
+  /** Hands tickets to the user, once they said it is fine to take them from whoever has them. */
+  const requestAssign = (group: IssueSummary[]) => {
+    const issues = group.filter((i) => !isMine(i, me))
+    if (issues.length === 0) {
+      showToast({ moved: [], message: `${countOf(group)} already assigned to you`, errors: [] })
+      return
+    }
+    const taken = issues.filter((i) => i.assignee)
+    if (taken.length === 0) {
+      void assignToMe(issues)
+      return
+    }
+    const names = [...new Set(taken.map((i) => i.assignee!.displayName))].join(', ')
+    setAssignConfirm({
+      issues,
+      lines:
+        taken.length <= 4
+          ? taken.map((i) => `${i.key} is assigned to ${i.assignee!.displayName}.`)
+          : [`${taken.length} of these tickets are assigned to someone else (${names}).`],
+    })
+  }
+
+  const unassign = async (issues: IssueSummary[]) => {
+    const { ok, failed } = await setAssignees(
+      issues,
+      () => null,
+      (i) => i.assignee,
+    )
+    reportAssignment(ok, failed, 'unassigned', null)
   }
 
   const endDrag = () => {
@@ -387,7 +554,8 @@ export function useMovesController({
         return [...base, issue]
       }),
     clearMarks: () => setMarked((prev) => (prev.length > 0 ? [] : prev)),
-    startDrag: (issue, e) => {
+    assign: (issue) => requestAssign(marked.some((m) => m.key === issue.key) ? marked : [issue]),
+    startDrag: (issue, e, source = 'list') => {
       const group = marked.some((m) => m.key === issue.key) ? marked : [issue]
       e.dataTransfer.effectAllowed = 'move'
       try {
@@ -398,7 +566,10 @@ export function useMovesController({
       // Changing the DOM inside dragstart can cancel the drag in Chromium: defer it
       window.setTimeout(() => {
         setDragged(group)
+        setDragSource(source)
         setIsDragging(true)
+        // Tickets dragged from the board only go to the Open list: nothing to prefetch
+        if (source === 'board') return
         // A mixed group can't move together, so only a group in one status needs its transitions
         const sameStatus = group.every((i) => i.status.id === group[0].status.id)
         group.forEach((i) => {
@@ -407,7 +578,8 @@ export function useMovesController({
         })
       }, 0)
       window.clearTimeout(timers.current.overlay)
-      timers.current.overlay = window.setTimeout(() => setOverlayOpen(true), OVERLAY_DELAY_MS)
+      // The overlay is for moving and editing tickets, which tickets taken from the board aren't about
+      if (source === 'list') timers.current.overlay = window.setTimeout(() => setOverlayOpen(true), OVERLAY_DELAY_MS)
     },
     endDrag,
     move: (issues, target) => void requestMove(issues, target),
@@ -416,7 +588,7 @@ export function useMovesController({
   // Esc cancels a drag, then clears a group (the edit dialog handles its own Esc)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape' || editing || input) return
+      if (e.key !== 'Escape' || editing || input || assignConfirm) return
       if (isDragging) endDrag()
       else if (marked.length > 0) setMarked([])
     }
@@ -437,7 +609,28 @@ export function useMovesController({
         endDrag()
         setEditing(dragged)
       },
+      onUnassign: () => {
+        endDrag()
+        void unassign(dragged)
+      },
     },
+    /** Tickets dragged from the board, waiting to be dropped on the Open list */
+    boardDrag: {
+      active: isDragging && dragSource === 'board',
+      drop: () => {
+        const issues = dragged
+        endDrag()
+        requestAssign(issues)
+      },
+    },
+    /** Taking tickets over from someone else: waiting for a yes */
+    assignConfirm,
+    confirmAssign: () => {
+      const pending = assignConfirm
+      setAssignConfirm(null)
+      if (pending) void assignToMe(pending.issues)
+    },
+    cancelAssign: () => setAssignConfirm(null),
     /** The tickets being edited in bulk, while the dialog is open */
     editing,
     applyEdits: (changes: FieldChange[], names: string[], priority?: Choice) => {

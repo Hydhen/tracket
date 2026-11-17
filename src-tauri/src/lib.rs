@@ -1,4 +1,5 @@
 mod auth;
+mod board;
 mod comment;
 mod detail;
 mod edit;
@@ -53,6 +54,11 @@ pub fn run() {
             auth::current_session,
             auth::logout,
             jira::search_issues,
+            board::list_boards,
+            board::list_projects,
+            board::get_board_columns,
+            board::get_board_sprints,
+            board::get_board_issues,
             detail::get_issue,
             edit::get_description_source,
             edit::update_description,
@@ -65,6 +71,7 @@ pub fn run() {
             fields::get_field_values,
             metadata::get_edit_meta,
             metadata::update_issue_fields,
+            metadata::assign_issue,
             metadata::search_assignable_users,
             metadata::search_mentionable_users,
             worklog::add_worklog,

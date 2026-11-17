@@ -1,5 +1,5 @@
 import { useQueries } from '@tanstack/react-query'
-import { SlidersHorizontal } from 'lucide-react'
+import { SlidersHorizontal, UserMinus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Spinner } from '@/components/Spinner'
 import { describeFields, editMetaQuery, sharedFields, statusGroups } from '@/features/bulk/sharedFields'
@@ -18,6 +18,7 @@ const MIN_H = 360
 
 // The edit zone's colours: none of the status colours, so it never reads as a status
 const EDIT_COLORS = { glow: '#c4b5fd', tint: '#1d1a36' }
+const UNASSIGN_COLORS = { glow: '#fdba74', tint: '#2a1d12' }
 
 /** Vertical centre of each target, spaced 96px apart around the middle (tighter when there are many). */
 function layout(count: number) {
@@ -54,11 +55,14 @@ export function StatusGraphOverlay({
   issues,
   onDrop,
   onEdit,
+  onUnassign,
 }: {
   open: boolean
   issues: IssueSummary[]
   onDrop: (target: Status) => void
   onEdit: () => void
+  /** Offers a zone that gives the tickets back (on the board, where dropping them means "not mine anymore") */
+  onUnassign?: () => void
 }) {
   const groups = statusGroups(issues)
   const mixed = groups.length > 1
@@ -68,6 +72,7 @@ export function StatusGraphOverlay({
   const metaQueries = useQueries({ queries: issues.map((i) => ({ ...editMetaQuery(i.key), enabled: open })) })
   const [hover, setHover] = useState<string | null>(null)
   const [editHover, setEditHover] = useState(false)
+  const [unassignHover, setUnassignHover] = useState(false)
   const [scale, setScale] = useState(1)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -78,6 +83,7 @@ export function StatusGraphOverlay({
     if (!open) {
       setHover(null)
       setEditHover(false)
+      setUnassignHover(false)
     }
   }
 
@@ -104,6 +110,7 @@ export function StatusGraphOverlay({
 
   const what = issues.length > 1 ? `${issues.length} tickets` : (issues[0]?.key ?? '')
   const title = `Move ${what} to…`
+  const canUnassign = !!onUnassign && issues.length > 0 && issues.every((i) => i.assignee)
 
   return (
     <div
@@ -116,7 +123,7 @@ export function StatusGraphOverlay({
       )}
     >
       {/* About a fifth of the pane: a target as easy to hit as a status node */}
-      <div className="h-[20%] min-h-24 shrink-0 p-3 pb-0">
+      <div className="flex h-[20%] min-h-24 shrink-0 gap-3 p-3 pb-0">
         <div
           onDragOver={(e) => {
             if (!canEdit) return
@@ -132,7 +139,7 @@ export function StatusGraphOverlay({
             onEdit()
           }}
           className={cn(
-            'box-border flex h-full flex-col items-center justify-center gap-1 rounded-xl border border-dashed px-4 text-center transition-[background,border-color,box-shadow,opacity] duration-200',
+            'box-border flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-dashed px-4 text-center transition-[background,border-color,box-shadow,opacity] duration-200',
             !canEdit && !metaLoading && 'opacity-60',
           )}
           style={{
@@ -166,6 +173,41 @@ export function StatusGraphOverlay({
             )}
           </div>
         </div>
+
+        {onUnassign && (
+          <div
+            onDragOver={(e) => {
+              if (!canUnassign) return
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'move'
+              setUnassignHover(true)
+            }}
+            onDragLeave={() => setUnassignHover(false)}
+            onDrop={(e) => {
+              if (!canUnassign) return
+              e.preventDefault()
+              setUnassignHover(false)
+              onUnassign()
+            }}
+            className={cn(
+              'box-border flex h-full w-[34%] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed px-3 text-center transition-[background,border-color,box-shadow,opacity] duration-200',
+              !canUnassign && 'opacity-60',
+            )}
+            style={{
+              background: unassignHover ? UNASSIGN_COLORS.tint : 'transparent',
+              borderColor: unassignHover ? UNASSIGN_COLORS.glow : '#5a4a3a',
+              boxShadow: unassignHover ? `0 0 0 1px ${UNASSIGN_COLORS.glow}, 0 0 32px ${UNASSIGN_COLORS.glow}44` : 'none',
+            }}
+          >
+            <div className="pointer-events-none flex items-center gap-2 text-sm font-semibold">
+              <UserMinus className="size-4" style={{ color: UNASSIGN_COLORS.glow }} />
+              Unassign {what}
+            </div>
+            <div className="pointer-events-none text-xs text-[#a0a0a8]">
+              {canUnassign ? 'Gives it back to the board' : 'Nobody has this ticket'}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col items-center overflow-auto px-4 py-6">

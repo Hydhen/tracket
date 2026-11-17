@@ -1,18 +1,19 @@
 import type { MouseEvent } from 'react'
 import type { IssueSummary } from '@/lib/api'
 import { useTicketMoves } from './movesContext'
+import type { DragSource } from './useMovesController'
 
 /**
  * What a ticket row needs to take part in moving tickets: draggable props, how it should look
  * (picked, being dragged, just moved), and the click rules shared by every list.
  */
-export function useRowMoves(issue: IssueSummary) {
+export function useRowMoves(issue: IssueSummary, source?: DragSource) {
   const moves = useTicketMoves()
 
   return {
     dragProps: {
       draggable: true,
-      onDragStart: (e: React.DragEvent) => moves.startDrag(issue, e),
+      onDragStart: (e: React.DragEvent) => moves.startDrag(issue, e, source),
       onDragEnd: moves.endDrag,
     },
     marked: moves.marked.has(issue.key),

@@ -135,7 +135,9 @@ export function IssueDetail({
   // For VS Code the prompt is copied first, on the click itself: the clipboard is only reachable
   // while this window has the focus, and the app takes it as soon as it opens
   const onStartWork = (anchor: Element) => {
-    if (projects.length === 0) return linkRepo(issue.projectKey)
+    // No project for this ticket (none at all, or none with its metadata): the settings offer to add one for it
+    const resolved = routingFields.length === 0 || !!routing.data
+    if (projects.length === 0 || (resolved && !target)) return linkRepo(issue.projectKey)
     if (app === 'vscode') void copyText(workPrompt(issue, site)).then((ok) => ok && copyPopup.show(anchor))
     startWork.mutate()
   }

@@ -159,6 +159,8 @@ export function ProjectsSettings({ initialProject }: { initialProject?: string }
             value={name}
             onChange={(e) => setName(e.target.value)}
             aria-label="Project name"
+            // Sent here from a ticket with no project: the new entry is waiting for its name
+            autoFocus={!!initialProject}
             placeholder="Optional: the values below by default"
             className={`min-w-0 flex-1 ${INPUT_CLASS}`}
           />
