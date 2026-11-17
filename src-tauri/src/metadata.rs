@@ -522,6 +522,44 @@ pub async fn update_issue_fields(
     Ok(())
 }
 
+/// The body of Jira's assign request: nobody (`null`) unassigns.
+fn assignee_body(account_id: Option<&str>) -> Result<Value> {
+    match account_id {
+        None => Ok(json!({ "accountId": null })),
+        Some(id) if is_account_id(id) => Ok(json!({ "accountId": id })),
+        Some(_) => Err(AppError::new("invalidQuery", "Invalid person")),
+    }
+}
+
+/// Assigns the issue to a person, or to nobody. Jira's own assign request rather than an edit of the
+/// assignee field: it doesn't need the field on the issue's edit screen, and unassigning is what it
+/// documents for a `null` account.
+#[tauri::command]
+pub async fn assign_issue(
+    http: tauri::State<'_, reqwest::Client>,
+    key: String,
+    account_id: Option<String>,
+) -> Result<()> {
+    validate_key(&key)?;
+    let body = assignee_body(account_id.as_deref())?;
+    let credentials = load_credentials()?
+        .ok_or_else(|| AppError::new("invalidCredentials", "You're not signed in"))?;
+
+    let response = http
+        .put(format!(
+            "{}/rest/api/3/issue/{key}/assignee",
+            credentials.site
+        ))
+        .basic_auth(&credentials.email, Some(&credentials.token))
+        .json(&body)
+        .send()
+        .await
+        .map_err(AppError::network)?;
+    ensure_ok(response).await?;
+
+    Ok(())
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
@@ -638,9 +676,19 @@ mod tests {
     use serde_json::json;
 
     use super::{
-        EditMetaResponse, FieldChange, FieldKind, edit_body, edit_fields, is_account_id, is_day,
-        is_field_key, is_label, is_project_key, screen_fields,
+        EditMetaResponse, FieldChange, FieldKind, assignee_body, edit_body, edit_fields, is_account_id,
+        is_day, is_field_key, is_label, is_project_key, screen_fields,
     };
+
+    #[test]
+    fn builds_the_assign_request() {
+        assert_eq!(assignee_body(None).unwrap(), json!({ "accountId": null }));
+        assert_eq!(
+            assignee_body(Some("557058:f58131cb")).unwrap(),
+            json!({ "accountId": "557058:f58131cb" })
+        );
+        assert!(assignee_body(Some("a b")).is_err());
+    }
 
     #[test]
     fn finds_what_a_transition_requires() {

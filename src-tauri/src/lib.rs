@@ -71,6 +71,7 @@ pub fn run() {
             fields::get_field_values,
             metadata::get_edit_meta,
             metadata::update_issue_fields,
+            metadata::assign_issue,
             metadata::search_assignable_users,
             metadata::search_mentionable_users,
             worklog::add_worklog,

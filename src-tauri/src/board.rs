@@ -25,6 +25,7 @@ pub struct Board {
     /// `scrum`, `kanban` or `simple` (team-managed projects)
     pub kind: String,
     pub project_key: Option<String>,
+    pub project_name: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -81,6 +82,7 @@ struct RawBoard {
 #[serde(rename_all = "camelCase")]
 struct RawLocation {
     project_key: Option<String>,
+    project_name: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -175,11 +177,18 @@ pub async fn list_boards(http: tauri::State<'_, reqwest::Client>) -> Result<Vec<
             Err(e) => return Err(e),
         };
         let last = page.is_last.unwrap_or(page.values.len() < 50);
-        boards.extend(page.values.into_iter().map(|b| Board {
-            id: b.id,
-            name: b.name,
-            kind: b.kind,
-            project_key: b.location.and_then(|l| l.project_key),
+        boards.extend(page.values.into_iter().map(|b| {
+            let (project_key, project_name) = match b.location {
+                Some(l) => (l.project_key, l.project_name),
+                None => (None, None),
+            };
+            Board {
+                id: b.id,
+                name: b.name,
+                kind: b.kind,
+                project_key,
+                project_name,
+            }
         }));
         if last {
             break;

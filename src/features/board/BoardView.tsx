@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { GripVertical, RefreshCw, Search, UserPlus } from 'lucide-react'
+import { ChevronDown, ChevronRight, GripVertical, RefreshCw, Search, UserPlus } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,8 @@ import type { Board, IssueSummary, Person } from '@/lib/api'
 import { formatDay, isOverdue } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { buildColumns, filterIssues, isMine, type AssigneeFilter, type Column } from './columns'
+import { SourcePicker } from './SourcePicker'
+import { sourceOptions, sourceValue } from './sources'
 import {
   BOARD_ISSUES,
   defaultSource,
@@ -31,8 +33,6 @@ const ASSIGNEES: { id: AssigneeFilter; label: string }[] = [
 const SELECT =
   'h-7 min-w-0 max-w-56 truncate rounded-md border bg-background px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50'
 
-/** Value of the board/project picker */
-const sourceValue = (s: BoardSource | null) => (s ? (s.kind === 'board' ? `board:${s.boardId}` : `project:${s.key}`) : '')
 const scopeValue = (s: BoardSource & { kind: 'board' }) => String(s.scope)
 
 function Avatar({ person }: { person: Person }) {
@@ -122,18 +122,49 @@ function BoardColumnView({
   column,
   me,
   openKey,
+  collapsed,
+  onToggle,
   onOpen,
 }: {
   column: Column
   me: string
   openKey: string | undefined
+  /** Folded into a narrow strip: just its name and how many tickets it holds */
+  collapsed: boolean
+  onToggle: () => void
   onOpen: (issue: IssueSummary) => void
 }) {
+  if (collapsed) {
+    return (
+      <section className="flex w-10 shrink-0 flex-col rounded-lg bg-muted/40">
+        <button
+          onClick={onToggle}
+          aria-expanded={false}
+          aria-label={`Expand ${column.name} (${column.issues.length})`}
+          title={`Expand ${column.name}`}
+          className="flex h-full min-h-24 flex-col items-center gap-2 rounded-lg px-1 py-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+        >
+          <ChevronRight className="size-3.5 shrink-0" />
+          <span className="font-normal">{column.issues.length}</span>
+          <span className="truncate font-medium uppercase tracking-wide [writing-mode:vertical-rl]">{column.name}</span>
+        </button>
+      </section>
+    )
+  }
+
   return (
     <section className="flex min-h-0 w-72 shrink-0 flex-col rounded-lg bg-muted/40">
-      <h2 className="flex items-center gap-2 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        <span className="truncate">{column.name}</span>
-        <span className="font-normal">{column.issues.length}</span>
+      <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <button
+          onClick={onToggle}
+          aria-expanded
+          title={`Collapse ${column.name}`}
+          className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-left uppercase hover:bg-accent hover:text-foreground"
+        >
+          <ChevronDown className="size-3.5 shrink-0" />
+          <span className="truncate">{column.name}</span>
+          <span className="font-normal">{column.issues.length}</span>
+        </button>
       </h2>
       <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
         {column.issues.map((issue) => (
@@ -183,12 +214,12 @@ export function BoardView({
   const source = prefs.source ?? (boardList ? defaultSource(boardList, myIssues) : null)
   const board: Board | undefined = source?.kind === 'board' ? boardList?.find((b) => b.id === source.boardId) : undefined
 
-  // The projects that have a board are reached through it
-  const withBoard = useMemo(() => new Set((boardList ?? []).map((b) => b.projectKey)), [boardList])
-  const lonelyProjects = (projects.data ?? []).filter((p) => !withBoard.has(p.key))
-  // No projects list (or a project in the open tickets that it left out): still reachable
-  const known = new Set(lonelyProjects.map((p) => p.key))
-  const mineOnly = [...new Set(myIssues.map((i) => i.projectKey))].filter((k) => !withBoard.has(k) && !known.has(k))
+  // Sorted by project name. A project from the open tickets is offered even if the projects list left it out
+  const projectList = projects.data
+  const options = useMemo(
+    () => sourceOptions(boardList ?? [], projectList ?? [], [...new Set(myIssues.map((i) => i.projectKey))]),
+    [boardList, projectList, myIssues],
+  )
 
   const data = useBoardData(source, prefs.showDone)
   const loaded = data.issues.data?.issues
@@ -213,9 +244,8 @@ export function BoardView({
   }
 
   const pickSource = (value: string) => {
-    const [kind, id] = value.split(':')
-    if (kind === 'board') setPrefs({ source: { kind: 'board', boardId: Number(id), scope: 'auto' } })
-    else if (kind === 'project') setPrefs({ source: { kind: 'project', key: id } })
+    const picked = options.find((o) => o.value === value)
+    if (picked) setPrefs({ source: picked.source })
   }
 
   const pickScope = (value: string) => {
@@ -224,11 +254,19 @@ export function BoardView({
     setPrefs({ source: { ...source, scope } })
   }
 
+  // Columns folded away are remembered for each board, by name (a board's columns keep theirs)
+  const folded = prefs.collapsed[sourceValue(source)] ?? []
+  const toggleColumn = (name: string) => {
+    const id = sourceValue(source)
+    const next = folded.includes(name) ? folded.filter((n) => n !== name) : [...folded, name]
+    setPrefs({ collapsed: { ...prefs.collapsed, [id]: next } })
+  }
+
   const hasSprints = data.sprints.length > 0
   const everyone = prefs.assignee === 'anyone'
   const fetching = data.issues.isFetching
 
-  const noSource = !source && boards.isSuccess && projects.isSuccess
+  const noSource = !source && !boards.isPending && !projects.isPending
   const loadingSources = !source && (boards.isPending || projects.isPending)
 
   let body: ReactNode
@@ -270,7 +308,15 @@ export function BoardView({
     body = (
       <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto p-4">
         {columns.map((column) => (
-          <BoardColumnView key={column.id} column={column} me={me} openKey={openKey} onOpen={onOpen} />
+          <BoardColumnView
+            key={column.id}
+            column={column}
+            me={me}
+            openKey={openKey}
+            collapsed={folded.includes(column.name)}
+            onToggle={() => toggleColumn(column.name)}
+            onOpen={onOpen}
+          />
         ))}
       </div>
     )
@@ -279,38 +325,14 @@ export function BoardView({
   return (
     <div className="flex h-full min-w-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
-        <select
-          aria-label="Board or project"
+        <SourcePicker
+          options={options}
           value={sourceValue(source)}
-          onChange={(e) => pickSource(e.target.value)}
-          className={SELECT}
-        >
-          {!source && <option value="">Choose a board…</option>}
-          {boardList && boardList.length > 0 && (
-            <optgroup label="Boards">
-              {boardList.map((b) => (
-                <option key={b.id} value={`board:${b.id}`}>
-                  {b.name}
-                  {b.projectKey ? ` · ${b.projectKey}` : ''}
-                </option>
-              ))}
-            </optgroup>
-          )}
-          {(lonelyProjects.length > 0 || mineOnly.length > 0) && (
-            <optgroup label={boardList && boardList.length > 0 ? 'Projects without a board' : 'Projects'}>
-              {lonelyProjects.map((p) => (
-                <option key={p.key} value={`project:${p.key}`}>
-                  {p.name} · {p.key}
-                </option>
-              ))}
-              {mineOnly.map((key) => (
-                <option key={key} value={`project:${key}`}>
-                  {key}
-                </option>
-              ))}
-            </optgroup>
-          )}
-        </select>
+          fallbackLabel={
+            !source ? 'Choose a board…' : source.kind === 'project' ? source.key : `Board ${source.boardId}`
+          }
+          onChange={pickSource}
+        />
 
         {source?.kind === 'board' && board?.kind !== 'kanban' && (
           <select

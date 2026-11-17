@@ -153,6 +153,7 @@ export interface Board {
   /** `simple` is a team-managed project's board */
   kind: 'scrum' | 'kanban' | 'simple' | (string & {})
   projectKey: string | null
+  projectName: string | null
 }
 
 export interface Project {
@@ -273,6 +274,8 @@ export const api = {
   getEditMeta: (key: string) => call<EditField[]>('get_edit_meta', { key }),
   updateIssueFields: (key: string, changes: FieldChange[]) =>
     call<void>('update_issue_fields', { key, changes }),
+  /** Gives the ticket to a person; `null` unassigns it */
+  assignIssue: (key: string, accountId: string | null) => call<void>('assign_issue', { key, accountId }),
   /** People assignable in every one of the projects */
   searchAssignableUsers: (projectKeys: string[], query: string) =>
     call<User[]>('search_assignable_users', { projectKeys, query }),

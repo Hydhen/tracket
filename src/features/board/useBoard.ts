@@ -23,9 +23,20 @@ export interface BoardPrefs {
   source: BoardSource | null
   assignee: AssigneeFilter
   showDone: boolean
+  /** Names of the columns folded away, for each board or project (by `sourceValue`) */
+  collapsed: Record<string, string[]>
 }
 
-const DEFAULTS: BoardPrefs = { source: null, assignee: 'unassigned', showDone: false }
+const DEFAULTS: BoardPrefs = { source: null, assignee: 'unassigned', showDone: false, collapsed: {} }
+
+function parseCollapsed(raw: unknown): Record<string, string[]> {
+  if (!raw || typeof raw !== 'object') return {}
+  const out: Record<string, string[]> = {}
+  for (const [source, names] of Object.entries(raw)) {
+    if (Array.isArray(names)) out[source] = names.filter((n): n is string => typeof n === 'string')
+  }
+  return out
+}
 
 function parseSource(raw: unknown): BoardSource | null {
   if (!raw || typeof raw !== 'object') return null
@@ -49,6 +60,7 @@ function load(): BoardPrefs {
       source: parseSource(p.source),
       assignee: p.assignee === 'anyone' || p.assignee === 'mine' || p.assignee === 'unassigned' ? p.assignee : DEFAULTS.assignee,
       showDone: p.showDone === true,
+      collapsed: parseCollapsed(p.collapsed),
     }
   } catch {
     return DEFAULTS

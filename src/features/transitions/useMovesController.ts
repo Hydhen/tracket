@@ -5,6 +5,7 @@ import {
   ApiError,
   type Choice,
   type FieldChange,
+  type IssueDetail,
   type IssueList,
   type IssueSummary,
   type Person,
@@ -30,6 +31,8 @@ type Patches = Record<string, Partial<IssueSummary>>
 /** Caches holding lists of issues, whose copies of a ticket must show its new status. */
 const LIST_QUERIES = ['issues', 'search', 'children', 'tree-roots', BOARD_ISSUES]
 const isListQuery = (key: readonly unknown[]) => LIST_QUERIES.includes(key[0] as string)
+/** The lists of the sidebar's tabs: the Open and Closed lists, and the tree's roots */
+const isSidebarQuery = (key: readonly unknown[]) => key[0] === 'issues' || key[0] === 'tree-roots'
 
 // Don't flash the overlay for a quick drag that is only meant to reorder or cancel
 const OVERLAY_DELAY_MS = 150
@@ -170,7 +173,12 @@ export function useMovesController({
     keys.forEach((key) => queryClient.removeQueries({ queryKey: ['transitions', key] }))
     window.clearTimeout(timers.current.sync)
     timers.current.sync = window.setTimeout(() => {
-      queryClient.invalidateQueries({ predicate: (q) => isListQuery(q.queryKey) || q.queryKey[0] === 'issue' })
+      queryClient.invalidateQueries({
+        predicate: (q) => (isListQuery(q.queryKey) || q.queryKey[0] === 'issue') && !isSidebarQuery(q.queryKey),
+      })
+      // The sidebar's tabs (Open, Closed, Tree) are reloaded even when not showing, so none of them
+      // is out of date when the person switches to it: it appears already right, with nothing loading
+      queryClient.invalidateQueries({ predicate: (q) => isSidebarQuery(q.queryKey), refetchType: 'all' })
     }, SYNC_DELAY_MS)
   }
 
@@ -398,14 +406,20 @@ export function useMovesController({
     scheduleSync(current.moved.map((i) => i.key))
   }
 
-  /** The Open list holds what is assigned to the user: tickets join or leave it as soon as they are handed out or taken back. */
-  const syncOpenList = (issues: IssueSummary[]) =>
-    queryClient.setQueryData<IssueList>(['issues', viewJql('open')], (old) => {
-      if (!old) return old
-      const keys = new Set(issues.map((i) => i.key))
-      const joining = issues.filter((i) => isMine(i, me) && i.status.category !== 'done')
-      return { ...old, issues: [...joining, ...old.issues.filter((i) => !keys.has(i.key))] }
-    })
+  /**
+   * The Open and Closed lists hold what is assigned to the user (by status category): tickets join or
+   * leave them as soon as they are handed out or taken back, whichever tab is showing.
+   */
+  const syncAssignedLists = (issues: IssueSummary[]) => {
+    const keys = new Set(issues.map((i) => i.key))
+    for (const [view, done] of [['open', false], ['closed', true]] as const) {
+      queryClient.setQueryData<IssueList>(['issues', viewJql(view)], (old) => {
+        if (!old) return old
+        const joining = issues.filter((i) => isMine(i, me) && (i.status.category === 'done') === done)
+        return { ...old, issues: [...joining, ...old.issues.filter((i) => !keys.has(i.key))] }
+      })
+    }
+  }
 
   /**
    * Gives each ticket the person `to` says (nobody unassigns). They show it at once, and go back to what
@@ -417,17 +431,24 @@ export function useMovesController({
     from: (issue: IssueSummary) => Person | null,
   ) => {
     setMarked([])
+    // What is shown is the truth once Jira has said yes: Jira's search takes too long to take the change
+    // in for the lists to be reloaded from it right after, so they are not. The board, the Open and Closed
+    // lists, the tree and the ticket's detail are all changed here.
     const show = (list: IssueSummary[], who: (issue: IssueSummary) => Person | null) => {
       applyPatches(Object.fromEntries(list.map((i) => [i.key, { assignee: who(i) }])))
-      syncOpenList(list.map((i) => ({ ...i, assignee: who(i) })))
+      syncAssignedLists(list.map((i) => ({ ...i, assignee: who(i) })))
+      for (const i of list) {
+        queryClient.setQueriesData<IssueDetail>({ queryKey: ['issue', i.key] }, (old) =>
+          old ? { ...old, assignee: who(i) } : old,
+        )
+      }
     }
+    // A list being reloaded right now would answer with what Jira had before: it would put the
+    // tickets back where they were
+    await queryClient.cancelQueries({ predicate: (q) => isListQuery(q.queryKey) })
     show(issues, to)
 
-    const results = await Promise.allSettled(
-      issues.map((i) =>
-        api.updateIssueFields(i.key, [{ key: 'assignee', op: 'setUser', accountId: to(i)?.accountId ?? null }]),
-      ),
-    )
+    const results = await Promise.allSettled(issues.map((i) => api.assignIssue(i.key, to(i)?.accountId ?? null)))
     const ok: IssueSummary[] = []
     const failed: { issue: IssueSummary; message: string }[] = []
     results.forEach((result, i) => {
@@ -442,7 +463,7 @@ export function useMovesController({
       )
     }
     if (ok.length > 0) flashRows(ok.map((i) => i.key))
-    scheduleSync(issues.map((i) => i.key))
+    // No reload from Jira: see above
     return { ok, failed }
   }
 
