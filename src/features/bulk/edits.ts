@@ -38,6 +38,59 @@ export const emptyDraft: Draft = {
   names: {},
 }
 
+/** Whether nothing has been filled in */
+export function isEmptyDraft(draft: Draft): boolean {
+  return (
+    !draft.value &&
+    !draft.touched &&
+    !draft.user &&
+    draft.add.length === 0 &&
+    draft.remove.length === 0 &&
+    !draft.addText &&
+    !draft.removeText
+  )
+}
+
+/**
+ * A draft kept from earlier, as far as the field still takes it: options the field doesn't offer on
+ * these tickets are dropped. Null when nothing is left of it.
+ */
+export function fitDraft(field: EditField, draft: Draft): Draft | null {
+  const offered = (id: string) => field.choices.some((c) => c.id === id)
+  const fitted =
+    field.kind === 'choice'
+      ? { ...draft, value: offered(draft.value) ? draft.value : '' }
+      : field.kind === 'choices'
+        ? { ...draft, add: draft.add.filter(offered), remove: draft.remove.filter(offered) }
+        : draft
+  return isEmptyDraft(fitted) ? null : fitted
+}
+
+/** A short description of what is filled in, e.g. "High", "+backend −legacy", "Me"; empty when nothing is. */
+export function describeDraft(field: EditField, draft: Draft): string {
+  const nameOf = (id: string) => field.choices.find((c) => c.id === id)?.name ?? draft.names[id] ?? id
+  const lists = (name: (item: string) => string) => {
+    const { add, remove } = listsOf(field, draft)
+    return [...add.map((i) => `+${name(i)}`), ...remove.map((i) => `−${name(i)}`)].join(' ')
+  }
+  switch (field.kind) {
+    case 'choice':
+      return nameOf(draft.value)
+    case 'choices':
+      return lists(nameOf)
+    case 'labels':
+      return lists((label) => label)
+    case 'users':
+      return lists((id) => draft.names[id] ?? id)
+    case 'user':
+      return draft.user ? (draft.user.accountId === null ? 'Nobody' : draft.user.name) : ''
+    case 'timeSpent':
+      return draft.value.trim() ? `Log ${draft.value.trim()}` : ''
+    default:
+      return draft.touched && !draft.value.trim() ? 'Cleared' : draft.value.trim()
+  }
+}
+
 const unique = (list: string[]) => [...new Set(list)]
 
 /** Splits what was typed into labels: Jira labels are single words, so spaces and commas separate them. */
