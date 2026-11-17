@@ -2,6 +2,7 @@ import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { ChevronDown, ChevronRight, Columns2, Plus, RefreshCw, Rows2, Search, Settings } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
+import { useGroupRef } from 'react-resizable-panels'
 import { Spinner } from '@/components/Spinner'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -77,6 +78,8 @@ export function MainShell({ session }: { session: Session }) {
   const [view, setView] = useState(loadView)
   const [sideLayout, setSideLayout] = useState(loadSideLayout)
   const stacked = sideLayout === 'rows'
+  // Double-clicking the divider between the main and side views evens them out
+  const splitRef = useGroupRef()
   const isTree = view === 'tree'
   const isTimers = view === 'timers'
   const isBoard = view === 'board'
@@ -405,11 +408,12 @@ export function MainShell({ session }: { session: Session }) {
         {/* The overlay and the toast belong to the detail pane only: the list stays visible and droppable-from */}
         <div className="relative flex min-w-0 flex-1">
           <ResizablePanelGroup
+            groupRef={splitRef}
             key={side ? `split-${sideLayout}` : 'single'}
             orientation={stacked ? 'vertical' : 'horizontal'}
             className="min-w-0 flex-1"
           >
-            <ResizablePanel id="main" defaultSize={isBoard ? '62%' : '50%'} minSize="25%">
+            <ResizablePanel id="main" defaultSize="50%" minSize="25%">
               {isBoard ? (
                 <main className="h-full min-w-0">
                   <BoardView
@@ -436,7 +440,7 @@ export function MainShell({ session }: { session: Session }) {
             </ResizablePanel>
             {side && (
               <>
-                <ResizableHandle withHandle />
+                <ResizableHandle withHandle onDoubleClick={() => splitRef.current?.setLayout({ main: 50, side: 50 })} />
                 {/*
                   A sibling of the divider, not a child: the resize library treats any pointer-down
                   on a child of the divider as a drag start, so the button would never get its click.
@@ -478,7 +482,7 @@ export function MainShell({ session }: { session: Session }) {
                     </button>
                   </div>
                 </div>
-                <ResizablePanel id="side" defaultSize={isBoard ? '38%' : '50%'} minSize="25%">
+                <ResizablePanel id="side" defaultSize="50%" minSize="25%">
                   <aside className="h-full overflow-auto p-6">
                     <IssueDetail
                       key={side.key}
