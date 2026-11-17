@@ -1,5 +1,5 @@
 import { useQueries } from '@tanstack/react-query'
-import { SlidersHorizontal, UserMinus } from 'lucide-react'
+import { SlidersHorizontal, UserMinus, UserPlus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Spinner } from '@/components/Spinner'
 import { describeFields, editMetaQuery, sharedFields, statusGroups } from '@/features/bulk/sharedFields'
@@ -19,6 +19,7 @@ const MIN_H = 360
 // The edit zone's colours: none of the status colours, so it never reads as a status
 const EDIT_COLORS = { glow: '#c4b5fd', tint: '#1d1a36' }
 const UNASSIGN_COLORS = { glow: '#fdba74', tint: '#2a1d12' }
+const ASSIGN_COLORS = { glow: '#5eead4', tint: '#10252a' }
 
 /** Vertical centre of each target, spaced 96px apart around the middle (tighter when there are many). */
 function layout(count: number) {
@@ -43,8 +44,9 @@ function commonTargets(current: Status, lists: Transition[][]): Status[] {
 }
 
 /**
- * Covers the detail pane while tickets are being dragged. Two places to drop them:
- * - the zone on top edits their fields (the ones they all share) in a dialog;
+ * Covers the detail pane while tickets are being dragged. Places to drop them:
+ * - the zones on top: one edits their fields (the ones they all share) in a dialog, one opens the choice of who to
+ *   assign them to, and one leaves them with nobody;
  * - below it, the workflow graph: the current status on the left, each status they can move to
  *   on the right. Releasing on one moves the tickets there. Tickets in different statuses can't
  *   move together, so they get a message instead of the graph.
@@ -55,14 +57,15 @@ export function StatusGraphOverlay({
   issues,
   onDrop,
   onEdit,
+  onAssign,
   onUnassign,
 }: {
   open: boolean
   issues: IssueSummary[]
   onDrop: (target: Status) => void
   onEdit: () => void
-  /** Offers a zone that gives the tickets back (on the board, where dropping them means "not mine anymore") */
-  onUnassign?: () => void
+  onAssign: () => void
+  onUnassign: () => void
 }) {
   const groups = statusGroups(issues)
   const mixed = groups.length > 1
@@ -73,6 +76,7 @@ export function StatusGraphOverlay({
   const [hover, setHover] = useState<string | null>(null)
   const [editHover, setEditHover] = useState(false)
   const [unassignHover, setUnassignHover] = useState(false)
+  const [assignHover, setAssignHover] = useState(false)
   const [scale, setScale] = useState(1)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -84,6 +88,7 @@ export function StatusGraphOverlay({
       setHover(null)
       setEditHover(false)
       setUnassignHover(false)
+      setAssignHover(false)
     }
   }
 
@@ -110,7 +115,7 @@ export function StatusGraphOverlay({
 
   const what = issues.length > 1 ? `${issues.length} tickets` : (issues[0]?.key ?? '')
   const title = `Move ${what} to…`
-  const canUnassign = !!onUnassign && issues.length > 0 && issues.every((i) => i.assignee)
+  const canUnassign = issues.length > 0 && issues.every((i) => i.assignee)
 
   return (
     <div
@@ -123,7 +128,7 @@ export function StatusGraphOverlay({
       )}
     >
       {/* About a fifth of the pane: a target as easy to hit as a status node */}
-      <div className="flex h-[20%] min-h-24 shrink-0 gap-3 p-3 pb-0">
+      <div className="flex h-[26%] min-h-32 shrink-0 gap-3 p-3 pb-0">
         <div
           onDragOver={(e) => {
             if (!canEdit) return
@@ -174,7 +179,34 @@ export function StatusGraphOverlay({
           </div>
         </div>
 
-        {onUnassign && (
+        {/* The two ways of changing who has the tickets, one above the other */}
+        <div className="flex w-[30%] shrink-0 flex-col gap-3">
+          <div
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.dataTransfer.dropEffect = 'move'
+              setAssignHover(true)
+            }}
+            onDragLeave={() => setAssignHover(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setAssignHover(false)
+              onAssign()
+            }}
+            className="box-border flex min-h-0 flex-1 flex-col items-center justify-center rounded-xl border border-dashed px-3 text-center transition-[background,border-color,box-shadow] duration-200"
+            style={{
+              background: assignHover ? ASSIGN_COLORS.tint : 'transparent',
+              borderColor: assignHover ? ASSIGN_COLORS.glow : '#3f5c5a',
+              boxShadow: assignHover ? `0 0 0 1px ${ASSIGN_COLORS.glow}, 0 0 32px ${ASSIGN_COLORS.glow}44` : 'none',
+            }}
+          >
+            <div className="pointer-events-none flex items-center gap-2 text-sm font-semibold">
+              <UserPlus className="size-4" style={{ color: ASSIGN_COLORS.glow }} />
+              Assign to…
+            </div>
+            <div className="pointer-events-none text-xs text-[#a0a0a8]">Pick who gets {what}</div>
+          </div>
+
           <div
             onDragOver={(e) => {
               if (!canUnassign) return
@@ -190,7 +222,7 @@ export function StatusGraphOverlay({
               onUnassign()
             }}
             className={cn(
-              'box-border flex h-full w-[34%] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed px-3 text-center transition-[background,border-color,box-shadow,opacity] duration-200',
+              'box-border flex min-h-0 flex-1 flex-col items-center justify-center rounded-xl border border-dashed px-3 text-center transition-[background,border-color,box-shadow,opacity] duration-200',
               !canUnassign && 'opacity-60',
             )}
             style={{
@@ -204,10 +236,10 @@ export function StatusGraphOverlay({
               Unassign {what}
             </div>
             <div className="pointer-events-none text-xs text-[#a0a0a8]">
-              {canUnassign ? 'Gives it back to the board' : 'Nobody has this ticket'}
+              {canUnassign ? 'Leaves it with nobody' : 'Nobody has this ticket'}
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col items-center overflow-auto px-4 py-6">

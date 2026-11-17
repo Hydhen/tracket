@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   api,
   ApiError,
@@ -12,6 +12,7 @@ import {
   type Transition,
 } from '@/lib/api'
 import { BOARD_ISSUES } from '@/features/board/useBoard'
+import { useResolveDefaults } from '@/features/bulk/defaultFields'
 import type { Draft } from '@/features/bulk/edits'
 import { editMetaQuery } from '@/features/bulk/sharedFields'
 import { viewJql } from '@/features/issues/useIssues'
@@ -19,7 +20,16 @@ import { summarizeChildren } from '@/features/tree/progress'
 import { childrenQuery } from '@/features/tree/useTree'
 import { transitionId, useLearnedFields } from './learnedFields'
 import type { TicketMoves } from './movesContext'
-import { moveInput, namedIn, needsInput, screenKeys, transitionsQuery, type MoveInput } from './transitions'
+import {
+  moveInput,
+  namedIn,
+  needsInput,
+  screenKeys,
+  seedFromDefaults,
+  transitionsQuery,
+  type MoveInput,
+  type MoveSeed,
+} from './transitions'
 
 /** The fields this transition turned out to insist on, in this project (see `useLearnedFields`). */
 const learnedFor = (issue: IssueSummary, transition: Transition) =>
@@ -57,15 +67,17 @@ export interface MoveToast {
   revert?: () => void
 }
 
-/** Where a drag started: the lists move and edit tickets, the board hands them out. */
+/** Where a drag started: tickets dragged from the board can also be dropped on the Open list, to take them. */
 export type DragSource = 'list' | 'board'
 
 export interface AssignConfirm {
   issues: IssueSummary[]
+  /** Who they would go to */
+  to: Person
   lines: string[]
 }
 
-const isMine = (issue: IssueSummary, me: Person) => issue.assignee?.accountId === me.accountId
+const isAssignedTo = (issue: IssueSummary, person: Person) => issue.assignee?.accountId === person.accountId
 const countOf = (issues: IssueSummary[]) => (issues.length > 1 ? `${issues.length} tickets` : issues[0].key)
 
 /** What was typed in the move's dialog, kept until the tickets have moved. */
@@ -119,8 +131,14 @@ export function useMovesController({
   } | null>(null)
   // Jira can ask for more after each try: what the user already filled in stays until the move is done
   const remembered = useRef(new Map<string, RememberedInput>())
-  const openInput = (issues: IssueSummary[], target: Status, needed: MoveInput) =>
-    setInput({ issues, target, needed, remembered: remembered.current.get(moveKey(issues, target)) })
+  // `seed`: what the defaults fill in, when nothing was typed yet for this move
+  const openInput = (issues: IssueSummary[], target: Status, needed: MoveInput, seed?: MoveSeed) =>
+    setInput({
+      issues,
+      target,
+      needed,
+      remembered: remembered.current.get(moveKey(issues, target)) ?? (seed && { drafts: seed.drafts, added: seed.added }),
+    })
   // Kept after the drag ends so the overlay doesn't change content while it fades out
   const [dragged, setDragged] = useState<IssueSummary[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -130,6 +148,8 @@ export function useMovesController({
   const [confirm, setConfirm] = useState<MoveConfirm | null>(null)
   // Taking tickets over from someone else asks first
   const [assignConfirm, setAssignConfirm] = useState<AssignConfirm | null>(null)
+  // The tickets dropped on "Assign to…", while the person to give them to is being picked
+  const [assigning, setAssigning] = useState<IssueSummary[] | null>(null)
   const [dragSource, setDragSource] = useState<DragSource>('list')
   const timers = useRef<Record<'overlay' | 'flash' | 'toast' | 'sync', number | undefined>>({
     overlay: undefined,
@@ -360,18 +380,30 @@ export function useMovesController({
     return lines
   }
 
-  /** Some moves need more than the click (a resolution, a comment…): asks first, then moves. */
+  /**
+   * Some moves need more than the click (a resolution, a comment…): asks first, then moves. A move to a done status
+   * starts from the Resolve defaults of the settings: when they cover everything Jira asks for, it just goes through.
+   */
   const moveOrAsk = async (issues: IssueSummary[], target: Status) => {
-    let needed: MoveInput | null = null
+    let screen: MoveInput | null = null
     try {
       const lists = await Promise.all(issues.map((i) => queryClient.fetchQuery(transitionsQuery(i.key))))
-      const screen = moveInput(issues, lists, target, learnedFor)
-      needed = needsInput(screen) ? screen : null
+      screen = moveInput(issues, lists, target, learnedFor)
     } catch {
       // can't tell: try the move, and Jira's own message will say what is missing
     }
-    if (needed) openInput(issues, target, needed)
-    else await execute(issues, target)
+    const defaults = target.category === 'done' ? useResolveDefaults.getState().fields : []
+    const seed = screen && defaults.length > 0 ? seedFromDefaults(screen, defaults, issues) : undefined
+
+    if (screen && needsInput(screen) && !seed?.complete) {
+      openInput(issues, target, screen, seed)
+    } else if (seed && seed.changes.length > 0) {
+      // Kept like what is typed in the dialog: if Jira refuses, its retry starts from these values
+      remembered.current.set(moveKey(issues, target), { drafts: seed.drafts, added: seed.added })
+      await execute(issues, target, seed.changes)
+    } else {
+      await execute(issues, target)
+    }
   }
 
   const requestMove = async (issues: IssueSummary[], target: Status) => {
@@ -415,7 +447,7 @@ export function useMovesController({
     for (const [view, done] of [['open', false], ['closed', true]] as const) {
       queryClient.setQueryData<IssueList>(['issues', viewJql(view)], (old) => {
         if (!old) return old
-        const joining = issues.filter((i) => isMine(i, me) && (i.status.category === 'done') === done)
+        const joining = issues.filter((i) => isAssignedTo(i, me) && (i.status.category === 'done') === done)
         return { ...old, issues: [...joining, ...old.issues.filter((i) => !keys.has(i.key))] }
       })
     }
@@ -496,30 +528,35 @@ export function useMovesController({
       failed.length > 0 ? ERROR_TOAST_MS : TOAST_MS,
     )
 
-  const assignToMe = async (issues: IssueSummary[]) => {
+  const assignTo = async (issues: IssueSummary[], to: Person) => {
     const { ok, failed } = await setAssignees(
       issues,
-      () => me,
+      () => to,
       (i) => i.assignee,
     )
-    reportAssignment(ok, failed, 'assigned to you', me)
+    reportAssignment(ok, failed, `assigned to ${to.accountId === me.accountId ? 'you' : to.displayName}`, to)
   }
 
-  /** Hands tickets to the user, once they said it is fine to take them from whoever has them. */
-  const requestAssign = (group: IssueSummary[]) => {
-    const issues = group.filter((i) => !isMine(i, me))
+  /** Hands tickets to `to` (the user by default), once they said it is fine to take them from whoever has them. */
+  const requestAssign = (group: IssueSummary[], to: Person = me) => {
+    const issues = group.filter((i) => !isAssignedTo(i, to))
     if (issues.length === 0) {
-      showToast({ moved: [], message: `${countOf(group)} already assigned to you`, errors: [] })
+      showToast({
+        moved: [],
+        message: `${countOf(group)} already assigned to ${to.accountId === me.accountId ? 'you' : to.displayName}`,
+        errors: [],
+      })
       return
     }
     const taken = issues.filter((i) => i.assignee)
     if (taken.length === 0) {
-      void assignToMe(issues)
+      void assignTo(issues, to)
       return
     }
     const names = [...new Set(taken.map((i) => i.assignee!.displayName))].join(', ')
     setAssignConfirm({
       issues,
+      to,
       lines:
         taken.length <= 4
           ? taken.map((i) => `${i.key} is assigned to ${i.assignee!.displayName}.`)
@@ -536,6 +573,8 @@ export function useMovesController({
     reportAssignment(ok, failed, 'unassigned', null)
   }
 
+  const closeAssigning = useCallback(() => setAssigning(null), [])
+
   const endDrag = () => {
     window.clearTimeout(timers.current.overlay)
     setIsDragging(false)
@@ -546,16 +585,20 @@ export function useMovesController({
     marked: new Set(marked.map((i) => i.key)),
     dragging: new Set(isDragging ? dragged.map((i) => i.key) : []),
     flash: new Set(flash),
-    toggleMark: (issue) =>
+    toggleMark: (issue) => {
+      // Picking tickets again leaves the picker's tickets behind
+      setAssigning(null)
       setMarked((prev) => {
         const base = prev.length > 0 ? prev : selected ? [selected] : []
         if (base.some((m) => m.key === issue.key)) return base.filter((m) => m.key !== issue.key)
         // Any ticket can join: tickets in different statuses can still be edited together
         return [...base, issue]
-      }),
+      })
+    },
     clearMarks: () => setMarked((prev) => (prev.length > 0 ? [] : prev)),
     assign: (issue) => requestAssign(marked.some((m) => m.key === issue.key) ? marked : [issue]),
     startDrag: (issue, e, source = 'list') => {
+      setAssigning(null)
       const group = marked.some((m) => m.key === issue.key) ? marked : [issue]
       e.dataTransfer.effectAllowed = 'move'
       try {
@@ -568,8 +611,6 @@ export function useMovesController({
         setDragged(group)
         setDragSource(source)
         setIsDragging(true)
-        // Tickets dragged from the board only go to the Open list: nothing to prefetch
-        if (source === 'board') return
         // A mixed group can't move together, so only a group in one status needs its transitions
         const sameStatus = group.every((i) => i.status.id === group[0].status.id)
         group.forEach((i) => {
@@ -578,18 +619,21 @@ export function useMovesController({
         })
       }, 0)
       window.clearTimeout(timers.current.overlay)
-      // The overlay is for moving and editing tickets, which tickets taken from the board aren't about
-      if (source === 'list') timers.current.overlay = window.setTimeout(() => setOverlayOpen(true), OVERLAY_DELAY_MS)
+      // Tickets dragged from the board can be moved, edited and assigned like the ones of the lists: the overlay covers
+      // the board, and the Open list (outside it) stays a drop target for taking them
+      timers.current.overlay = window.setTimeout(() => setOverlayOpen(true), OVERLAY_DELAY_MS)
     },
     endDrag,
     move: (issues, target) => void requestMove(issues, target),
+    edit: (issues) => setEditing(issues),
   }
 
   // Esc cancels a drag, then clears a group (the edit dialog handles its own Esc)
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || editing || input || assignConfirm) return
-      if (isDragging) endDrag()
+      if (assigning) setAssigning(null)
+      else if (isDragging) endDrag()
       else if (marked.length > 0) setMarked([])
     }
     window.addEventListener('keydown', onKeyDown)
@@ -613,6 +657,21 @@ export function useMovesController({
         endDrag()
         void unassign(dragged)
       },
+      onAssign: () => {
+        endDrag()
+        setAssigning(dragged)
+      },
+    },
+    /** Tickets dropped on "Assign to…": the person to give them to is being picked */
+    assignPicker: {
+      issues: assigning,
+      pick: (person: Person) => {
+        const issues = assigning
+        setAssigning(null)
+        if (issues) requestAssign(issues, person)
+      },
+      // Stable: a screen effect closes the picker when another ticket is opened
+      cancel: closeAssigning,
     },
     /** Tickets dragged from the board, waiting to be dropped on the Open list */
     boardDrag: {
@@ -628,7 +687,7 @@ export function useMovesController({
     confirmAssign: () => {
       const pending = assignConfirm
       setAssignConfirm(null)
-      if (pending) void assignToMe(pending.issues)
+      if (pending) void assignTo(pending.issues, pending.to)
     },
     cancelAssign: () => setAssignConfirm(null),
     /** The tickets being edited in bulk, while the dialog is open */

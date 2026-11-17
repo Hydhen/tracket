@@ -1,4 +1,6 @@
-import { api, type EditField, type IssueSummary, type Transition } from '@/lib/api'
+import { fitDraft, toChange, type Draft } from '@/features/bulk/edits'
+import type { DefaultField } from '@/features/bulk/defaultFields'
+import { api, type EditField, type FieldChange, type IssueSummary, type Transition } from '@/lib/api'
 
 type Status = IssueSummary['status']
 
@@ -75,6 +77,53 @@ export function moveInput(
 
 /** Whether the move has to wait for the user to fill something in. */
 export const needsInput = (input: MoveInput) => input.fields.length > 0 || input.unsupported.length > 0
+
+/** A field is filled in when there is a real value for it, not just a clearing. */
+export function filledChange(field: EditField, draft: Draft, issues: IssueSummary[]): FieldChange | null {
+  const change = toChange(field, draft, issues)
+  if (!change) return null
+  const needsText = ['text', 'number', 'date', 'longText', 'timeSpent'].includes(field.kind)
+  if (needsText && !draft.value.trim()) return null
+  if (field.kind === 'user' && !draft.user?.accountId) return null
+  return change
+}
+
+/** What the defaults of a move fill in on its screen. */
+export interface MoveSeed {
+  /** The values, as the move's dialog holds them */
+  drafts: Record<string, Draft>
+  /** The optional fields of the screen that have a value, which the dialog shows as added */
+  added: string[]
+  /** What the values come to, ready to be applied */
+  changes: FieldChange[]
+  /** Nothing is left to ask: every required field has its value and Jira needs no more than Tracket can give */
+  complete: boolean
+}
+
+/**
+ * The defaults that fit the move's screen: a field that isn't on it, or whose value its options no longer include, is
+ * skipped. Choices are those every ticket accepts, as `moveInput` narrowed them.
+ */
+export function seedFromDefaults(screen: MoveInput, defaults: DefaultField[], issues: IssueSummary[]): MoveSeed {
+  const drafts: Record<string, Draft> = {}
+  const added: string[] = []
+  const changes: FieldChange[] = []
+
+  for (const { key, value } of defaults) {
+    if (!value) continue
+    const asked = screen.fields.find((f) => f.key === key)
+    const field = asked ?? screen.optional.find((f) => f.key === key)
+    const draft = field && fitDraft(field, value)
+    const change = field && draft && filledChange(field, draft, issues)
+    if (!field || !draft || !change) continue
+    drafts[key] = draft
+    changes.push(change)
+    if (!asked) added.push(key)
+  }
+
+  const complete = screen.unsupported.length === 0 && screen.fields.every((f) => changes.some((c) => c.key === f.key))
+  return { drafts, added, changes, complete }
+}
 
 // Jira's validators speak English whatever the language of the site ("Time Spent" is required)
 const TIME_SPENT = /time\s*spent|temps\s+(pass|consacr)/i

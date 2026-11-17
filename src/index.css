@@ -184,6 +184,61 @@
   padding: 0.25rem 0.5rem;
 }
 
+/* Pictures open in the viewer */
+.jira-html .jira-img-wrap[data-state='loaded'] img {
+  cursor: zoom-in;
+}
+
+/* Videos: a player, with a button to expand it, and a link in its place when it can't be played */
+.jira-html .jira-video-wrap {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  margin: 0.5rem 0;
+}
+.jira-html .jira-video-wrap video {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  margin: 0;
+  border-radius: 0.375rem;
+  background: #000;
+}
+.jira-html .jira-expand {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border: 0;
+  border-radius: 0.375rem;
+  background: rgb(0 0 0 / 0.6);
+  color: #fff;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.jira-html .jira-video-wrap:hover .jira-expand,
+.jira-html .jira-expand:focus-visible {
+  opacity: 1;
+}
+.jira-html .jira-video-fallback {
+  display: none;
+  padding: 0.5rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+}
+.jira-html .jira-video-wrap[data-state='error'] video,
+.jira-html .jira-video-wrap[data-state='error'] .jira-expand {
+  display: none;
+}
+.jira-html .jira-video-wrap[data-state='error'] .jira-video-fallback {
+  display: block;
+}
+
 /* Image loader: a placeholder box with a spinner until the image settles */
 .jira-html .jira-img-wrap {
   position: relative;

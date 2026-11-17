@@ -1,21 +1,25 @@
-import { Info, ListChecks, LogOut, PanelTop, Rocket, X, type LucideIcon } from 'lucide-react'
+import { CircleCheck, Info, ListChecks, LogOut, PanelTop, Rocket, UserRoundCheck, X, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
+import { AssigneeSettings } from '@/features/assign/AssigneeSettings'
 import { useLogout } from '@/features/auth/useSession'
 import { BulkEditSettings } from '@/features/bulk/BulkEditSettings'
 import { elapsedOf, useNow, useTimers } from '@/features/timer/timerStore'
 import { AboutSettings } from '@/features/update/AboutSettings'
 import { QuickStartSettings } from '@/features/workspace/QuickStartSettings'
 import { cn } from '@/lib/utils'
+import { ResolveDefaultsSettings } from '@/features/transitions/ResolveDefaultsSettings'
 import { TicketDetailsSettings } from './TicketDetailsSettings'
 
-type Category = 'details' | 'bulk' | 'quickstart' | 'account' | 'about'
+type Category = 'details' | 'bulk' | 'resolve' | 'assignees' | 'quickstart' | 'account' | 'about'
 
 const CATEGORIES: { id: Category; label: string; icon: LucideIcon }[] = [
   { id: 'details', label: 'Ticket details', icon: PanelTop },
   { id: 'bulk', label: 'Bulk edit', icon: ListChecks },
+  { id: 'resolve', label: 'Resolve defaults', icon: CircleCheck },
+  { id: 'assignees', label: 'Favorite assignees', icon: UserRoundCheck },
   { id: 'quickstart', label: 'Quick start', icon: Rocket },
   { id: 'account', label: 'Account', icon: LogOut },
   { id: 'about', label: 'About', icon: Info },
@@ -169,6 +173,8 @@ export function SettingsDialog({
           >
             {category === 'details' && <TicketDetailsSettings />}
             {category === 'bulk' && <BulkEditSettings />}
+            {category === 'resolve' && <ResolveDefaultsSettings />}
+            {category === 'assignees' && <AssigneeSettings />}
             {category === 'quickstart' && <QuickStartSettings initialProject={linkProject} />}
             {category === 'account' && <AccountSettings site={site} />}
             {category === 'about' && <AboutSettings />}

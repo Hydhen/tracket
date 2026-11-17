@@ -3,6 +3,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import { useEffect, useState } from 'react'
 import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
+import { useWhatsNew } from '@/features/whatsnew/whatsNewStore'
 import { REPO_URL } from '@/lib/app'
 import { useUpdates } from './updateStore'
 
@@ -31,6 +32,9 @@ export function AboutSettings() {
       <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">About</h3>
       <p className="mt-1 text-sm">Tracket {version ?? ''}</p>
       <p className="text-sm text-muted-foreground">A lightweight Jira Cloud client. Free and open source.</p>
+      <Button variant="outline" size="sm" className="mt-3" onClick={() => useWhatsNew.getState().show()}>
+        What's new
+      </Button>
 
       <h3 className="mt-8 text-xs font-medium uppercase tracking-wide text-muted-foreground">Updates</h3>
       <div className="mt-2 flex flex-wrap items-center gap-3">

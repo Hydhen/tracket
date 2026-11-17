@@ -1,14 +1,17 @@
 import { useIsFetching, useQueryClient } from '@tanstack/react-query'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { ChevronRight, Plus, RefreshCw, Search, Settings } from 'lucide-react'
+import { ChevronDown, ChevronRight, Columns2, Plus, RefreshCw, Rows2, Search, Settings } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
+import { useGroupRef } from 'react-resizable-panels'
 import { Spinner } from '@/components/Spinner'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
+import { AssignPicker } from '@/features/assign/AssignPicker'
 import { BoardView } from '@/features/board/BoardView'
 import { BulkEditDialog } from '@/features/bulk/BulkEditDialog'
+import { MediaViewer } from '@/features/media/MediaViewer'
 import { IssueDetail } from '@/features/issues/IssueDetail'
 import { IssueList } from '@/features/issues/IssueList'
 import { TicketActionsContext } from '@/features/issues/ticketActions'
@@ -19,6 +22,7 @@ import { TimerChip } from '@/features/timer/TimerChip'
 import { TimersView } from '@/features/timer/TimersView'
 import { useUpdates } from '@/features/update/updateStore'
 import { UpdateNotice } from '@/features/update/UpdateNotice'
+import { WhatsNew } from '@/features/whatsnew/WhatsNew'
 import { TicketMovesContext } from '@/features/transitions/movesContext'
 import { MoveToast } from '@/features/transitions/MoveToast'
 import { StatusGraphOverlay } from '@/features/transitions/StatusGraphOverlay'
@@ -31,6 +35,7 @@ import { appStorage } from '@/lib/storage'
 import { cn } from '@/lib/utils'
 
 const VIEW_KEY = 'tracket-view'
+const SIDE_LAYOUT_KEY = 'tracket-side-layout'
 const ISSUE_KEY = /^[A-Z][A-Z0-9_]*-\d+$/
 
 /**
@@ -55,6 +60,17 @@ function loadView(): View {
   }
 }
 
+/** How the main view and the side view share the pane: next to each other, or one above the other */
+type SideLayout = 'columns' | 'rows'
+
+function loadSideLayout(): SideLayout {
+  try {
+    return appStorage.getItem(SIDE_LAYOUT_KEY) === 'rows' ? 'rows' : 'columns'
+  } catch {
+    return 'columns'
+  }
+}
+
 function Message({ children }: { children: ReactNode }) {
   return <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground">{children}</div>
 }
@@ -63,6 +79,10 @@ export function MainShell({ session }: { session: Session }) {
   const [selectedKey, setSelectedKey] = useState<string>()
   const [sideKey, setSideKey] = useState<string>()
   const [view, setView] = useState(loadView)
+  const [sideLayout, setSideLayout] = useState(loadSideLayout)
+  const stacked = sideLayout === 'rows'
+  // Double-clicking the divider between the main and side views evens them out
+  const splitRef = useGroupRef()
   const isTree = view === 'tree'
   const isTimers = view === 'timers'
   const isBoard = view === 'board'
@@ -101,6 +121,16 @@ export function MainShell({ session }: { session: Session }) {
     }
   }
 
+  const toggleSideLayout = () => {
+    const next = stacked ? 'columns' : 'rows'
+    setSideLayout(next)
+    try {
+      appStorage.setItem(SIDE_LAYOUT_KEY, next)
+    } catch {
+      // the choice still applies for this session
+    }
+  }
+
   // What the palette is for: opening a ticket, or picking a root for the tree
   const [palette, setPalette] = useState<'open' | 'tree' | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -131,7 +161,15 @@ export function MainShell({ session }: { session: Session }) {
     patchLocal: (patches) =>
       setExtras((prev) => prev.map((e) => (patches[e.key] ? { ...e, ...patches[e.key] } : e))),
   })
-  const { moves, overlay, boardDrag, toast, confirm, assignConfirm, editing, input } = movesController
+  const { moves, overlay, assignPicker, boardDrag, toast, confirm, assignConfirm, editing, input } = movesController
+  const assignedToMe = assignConfirm?.to.accountId === session.accountId
+
+  // Opening another ticket (in the main or the side view) closes the "Assign to…" view: it was for the tickets
+  // that were dragged, which are no longer what is in front of the person
+  const { cancel: closeAssignPicker } = assignPicker
+  useEffect(() => {
+    closeAssignPicker()
+  }, [selected?.key, side?.key, closeAssignPicker])
   const [dropHover, setDropHover] = useState(false)
 
   // Selecting the issue shown in the side view swaps the two
@@ -213,7 +251,7 @@ export function MainShell({ session }: { session: Session }) {
         <aside className="flex w-96 flex-col border-r">
           <button
             onClick={() => setPalette('open')}
-            className="flex items-center gap-2 border-b px-4 py-3 text-left text-sm text-muted-foreground hover:bg-accent"
+            className="flex h-[45px] items-center gap-2 border-b px-4 text-left text-sm text-muted-foreground hover:bg-accent"
           >
             <Search className="size-4" />
             <span>Search tickets…</span>
@@ -380,8 +418,13 @@ export function MainShell({ session }: { session: Session }) {
         {/* Re-keyed when the side view opens/closes so the split starts at 50% / 50% */}
         {/* The overlay and the toast belong to the detail pane only: the list stays visible and droppable-from */}
         <div className="relative flex min-w-0 flex-1">
-          <ResizablePanelGroup key={side ? 'split' : 'single'} orientation="horizontal" className="min-w-0 flex-1">
-            <ResizablePanel id="main" defaultSize={isBoard ? '62%' : '50%'} minSize="25%">
+          <ResizablePanelGroup
+            groupRef={splitRef}
+            key={side ? `split-${sideLayout}` : 'single'}
+            orientation={stacked ? 'vertical' : 'horizontal'}
+            className="min-w-0 flex-1"
+          >
+            <ResizablePanel id="main" defaultSize="50%" minSize="25%">
               {isBoard ? (
                 <main className="h-full min-w-0">
                   <BoardView
@@ -392,7 +435,7 @@ export function MainShell({ session }: { session: Session }) {
                   />
                 </main>
               ) : (
-                <main className="h-full overflow-auto p-6">
+                <main className="h-full overflow-auto">
                   {selected && (
                     <IssueDetail
                       key={selected.key}
@@ -408,27 +451,50 @@ export function MainShell({ session }: { session: Session }) {
             </ResizablePanel>
             {side && (
               <>
-                <ResizableHandle withHandle />
+                <ResizableHandle withHandle onDoubleClick={() => splitRef.current?.setLayout({ main: 50, side: 50 })} />
                 {/*
                   A sibling of the divider, not a child: the resize library treats any pointer-down
                   on a child of the divider as a drag start, so the button would never get its click.
                   The library also only sees this button as covering the divider when the pointer
                   target is an HTML element, so the SVG icon ignores the pointer (otherwise the
                   resize cursor and drag come back over the icon itself).
-                  The zero-width wrapper adds no space to the layout; the button straddles the divider.
+                  The zero-size wrapper adds no space to the layout; the buttons straddle the divider.
                 */}
-                <div className="relative z-20 w-0 shrink-0">
-                  <button
-                    title="Close side view"
-                    aria-label="Close side view"
-                    onClick={() => setSideKey(undefined)}
-                    className="absolute left-0 top-3 flex size-5 -translate-x-1/2 items-center justify-center rounded-full border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
+                <div className={cn('relative z-20 shrink-0', stacked ? 'h-0 w-full' : 'w-0')}>
+                  <div
+                    className={cn(
+                      'absolute flex gap-1',
+                      stacked ? 'right-3 top-0 -translate-y-1/2 flex-row-reverse' : 'left-0 top-3 -translate-x-1/2 flex-col',
+                    )}
                   >
-                    <ChevronRight className="pointer-events-none size-3.5" />
-                  </button>
+                    <button
+                      title="Close side view"
+                      aria-label="Close side view"
+                      onClick={() => setSideKey(undefined)}
+                      className="flex size-5 items-center justify-center rounded-full border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      {stacked ? (
+                        <ChevronDown className="pointer-events-none size-3.5" />
+                      ) : (
+                        <ChevronRight className="pointer-events-none size-3.5" />
+                      )}
+                    </button>
+                    <button
+                      title={stacked ? 'Put the side view beside the main one' : 'Put the side view below the main one'}
+                      aria-label={stacked ? 'Split vertically' : 'Split horizontally'}
+                      onClick={toggleSideLayout}
+                      className="flex size-5 items-center justify-center rounded-full border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      {stacked ? (
+                        <Columns2 className="pointer-events-none size-3" />
+                      ) : (
+                        <Rows2 className="pointer-events-none size-3" />
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <ResizablePanel id="side" defaultSize={isBoard ? '38%' : '50%'} minSize="25%">
-                  <aside className="h-full overflow-auto p-6">
+                <ResizablePanel id="side" defaultSize="50%" minSize="25%">
+                  <aside className="h-full overflow-auto">
                     <IssueDetail
                       key={side.key}
                       issue={side}
@@ -448,9 +514,12 @@ export function MainShell({ session }: { session: Session }) {
           issues={overlay.issues}
           onDrop={overlay.onDrop}
           onEdit={overlay.onEdit}
-          // On the board, a ticket of the Open list can be dropped to give it back
-          onUnassign={isBoard ? overlay.onUnassign : undefined}
+          onAssign={overlay.onAssign}
+          onUnassign={overlay.onUnassign}
         />
+        {assignPicker.issues && (
+          <AssignPicker issues={assignPicker.issues} onPick={assignPicker.pick} onCancel={assignPicker.cancel} />
+        )}
         <MoveToast toast={toast} onUndo={movesController.undo} onDismiss={movesController.dismissToast} />
         <UpdateNotice />
         </div>
@@ -470,8 +539,8 @@ export function MainShell({ session }: { session: Session }) {
 
         {assignConfirm && (
           <ConfirmDialog
-            title="Take over from someone else?"
-            confirmLabel="Assign to me"
+            title={assignedToMe ? 'Take over from someone else?' : `Reassign to ${assignConfirm.to.displayName}?`}
+            confirmLabel={assignedToMe ? 'Assign to me' : `Assign to ${assignConfirm.to.displayName}`}
             onConfirm={movesController.confirmAssign}
             onCancel={movesController.cancelAssign}
           >
@@ -479,7 +548,7 @@ export function MainShell({ session }: { session: Session }) {
               <p key={line}>{line}</p>
             ))}
             <p>
-              Assigning {assignConfirm.issues.length > 1 ? 'them' : 'it'} to you replaces who has{' '}
+              Assigning {assignConfirm.issues.length > 1 ? 'them' : 'it'} to {assignedToMe ? 'you' : assignConfirm.to.displayName} replaces who has{' '}
               {assignConfirm.issues.length > 1 ? 'them' : 'it'} now.
             </p>
           </ConfirmDialog>
@@ -506,6 +575,10 @@ export function MainShell({ session }: { session: Session }) {
             onCancel={movesController.cancelEdit}
           />
         )}
+
+        <MediaViewer />
+
+        <WhatsNew />
 
         {settingsOpen && <SettingsDialog linkProject={settingsProject} site={session.site.replace('https://', '')} onClose={() => setSettingsOpen(false)} />}
 
