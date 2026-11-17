@@ -1,5 +1,11 @@
 # tracket
 
+## 0.5.0
+
+### Minor Changes
+
+- [#10](https://github.com/Hydhen/tracket/pull/10) [`5d7b4d3`](https://github.com/Hydhen/tracket/commit/5d7b4d3256e41e02d1c8a9fda54ca643de4819eb) Thanks [@Hydhen](https://github.com/Hydhen)! - In the settings, each field the bulk edit starts with can now have a default value (a priority, an assignee, labels to add…), filled in when the dialog opens. Those fields are also reordered by dragging their handle instead of with the up and down arrows (the arrow keys still work on the handle).
+
 ## 0.4.0
 
 ### Minor Changes
