@@ -1,11 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { api, type Choice, type EditField, type User } from '@/lib/api'
-import { useDebounced } from '@/lib/useDebounced'
+import { useAssignableUsers } from '@/features/assign/useAssignableUsers'
+import type { Choice, EditField, User } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { parseLabels, type Draft, type Person } from './edits'
 
@@ -158,7 +157,7 @@ function ChoiceList({
 }
 
 /** A search field for people who can be assigned issues in the projects, listing matches under it. */
-function UserSearch({
+export function UserSearch({
   id,
   projectKeys,
   exclude = [],
@@ -170,27 +169,20 @@ function UserSearch({
   onPick: (user: User) => void
 }) {
   const [text, setText] = useState('')
-  const search = useDebounced(text.trim(), 250)
-  const users = useQuery({
-    queryKey: ['assignable', projectKeys.join(','), search],
-    queryFn: () => api.searchAssignableUsers(projectKeys, search),
-    enabled: search.length > 0,
-    staleTime: 60_000,
-  })
-  const waiting = text.trim() !== search || users.isFetching
-  const results = users.data?.filter((u) => !exclude.includes(u.accountId))
+  const { searching, waiting, users, error } = useAssignableUsers(projectKeys, text)
+  const results = users?.filter((u) => !exclude.includes(u.accountId))
 
   return (
     <div className="space-y-2">
       <Input id={id} value={text} onChange={(e) => setText(e.target.value)} placeholder="Search a person…" />
-      {search.length > 0 && (
+      {searching && (
         <div className="max-h-40 overflow-auto rounded-md border">
-          {waiting && !users.data ? (
+          {waiting && !users ? (
             <div className="flex justify-center p-2">
               <Spinner className="size-4" />
             </div>
-          ) : users.error ? (
-            <p className="p-2 text-sm text-destructive">{users.error.message}</p>
+          ) : error ? (
+            <p className="p-2 text-sm text-destructive">{error.message}</p>
           ) : results?.length === 0 ? (
             <p className="p-2 text-sm text-muted-foreground">
               No one found who can be assigned in {projectKeys.length > 1 ? 'all these projects' : projectKeys[0]}.

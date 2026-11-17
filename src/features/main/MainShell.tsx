@@ -8,6 +8,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
+import { AssignPicker } from '@/features/assign/AssignPicker'
 import { BoardView } from '@/features/board/BoardView'
 import { BulkEditDialog } from '@/features/bulk/BulkEditDialog'
 import { IssueDetail } from '@/features/issues/IssueDetail'
@@ -158,7 +159,15 @@ export function MainShell({ session }: { session: Session }) {
     patchLocal: (patches) =>
       setExtras((prev) => prev.map((e) => (patches[e.key] ? { ...e, ...patches[e.key] } : e))),
   })
-  const { moves, overlay, boardDrag, toast, confirm, assignConfirm, editing, input } = movesController
+  const { moves, overlay, assignPicker, boardDrag, toast, confirm, assignConfirm, editing, input } = movesController
+  const assignedToMe = assignConfirm?.to.accountId === session.accountId
+
+  // Opening another ticket (in the main or the side view) closes the "Assign to…" view: it was for the tickets
+  // that were dragged, which are no longer what is in front of the person
+  const { cancel: closeAssignPicker } = assignPicker
+  useEffect(() => {
+    closeAssignPicker()
+  }, [selected?.key, side?.key, closeAssignPicker])
   const [dropHover, setDropHover] = useState(false)
 
   // Selecting the issue shown in the side view swaps the two
@@ -503,9 +512,12 @@ export function MainShell({ session }: { session: Session }) {
           issues={overlay.issues}
           onDrop={overlay.onDrop}
           onEdit={overlay.onEdit}
-          // On the board, a ticket of the Open list can be dropped to give it back
-          onUnassign={isBoard ? overlay.onUnassign : undefined}
+          onAssign={overlay.onAssign}
+          onUnassign={overlay.onUnassign}
         />
+        {assignPicker.issues && (
+          <AssignPicker issues={assignPicker.issues} onPick={assignPicker.pick} onCancel={assignPicker.cancel} />
+        )}
         <MoveToast toast={toast} onUndo={movesController.undo} onDismiss={movesController.dismissToast} />
         <UpdateNotice />
         </div>
@@ -525,8 +537,8 @@ export function MainShell({ session }: { session: Session }) {
 
         {assignConfirm && (
           <ConfirmDialog
-            title="Take over from someone else?"
-            confirmLabel="Assign to me"
+            title={assignedToMe ? 'Take over from someone else?' : `Reassign to ${assignConfirm.to.displayName}?`}
+            confirmLabel={assignedToMe ? 'Assign to me' : `Assign to ${assignConfirm.to.displayName}`}
             onConfirm={movesController.confirmAssign}
             onCancel={movesController.cancelAssign}
           >
@@ -534,7 +546,7 @@ export function MainShell({ session }: { session: Session }) {
               <p key={line}>{line}</p>
             ))}
             <p>
-              Assigning {assignConfirm.issues.length > 1 ? 'them' : 'it'} to you replaces who has{' '}
+              Assigning {assignConfirm.issues.length > 1 ? 'them' : 'it'} to {assignedToMe ? 'you' : assignConfirm.to.displayName} replaces who has{' '}
               {assignConfirm.issues.length > 1 ? 'them' : 'it'} now.
             </p>
           </ConfirmDialog>

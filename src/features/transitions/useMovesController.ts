@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   api,
   ApiError,
@@ -62,10 +62,12 @@ export type DragSource = 'list' | 'board'
 
 export interface AssignConfirm {
   issues: IssueSummary[]
+  /** Who they would go to */
+  to: Person
   lines: string[]
 }
 
-const isMine = (issue: IssueSummary, me: Person) => issue.assignee?.accountId === me.accountId
+const isAssignedTo = (issue: IssueSummary, person: Person) => issue.assignee?.accountId === person.accountId
 const countOf = (issues: IssueSummary[]) => (issues.length > 1 ? `${issues.length} tickets` : issues[0].key)
 
 /** What was typed in the move's dialog, kept until the tickets have moved. */
@@ -130,6 +132,8 @@ export function useMovesController({
   const [confirm, setConfirm] = useState<MoveConfirm | null>(null)
   // Taking tickets over from someone else asks first
   const [assignConfirm, setAssignConfirm] = useState<AssignConfirm | null>(null)
+  // The tickets dropped on "Assign to…", while the person to give them to is being picked
+  const [assigning, setAssigning] = useState<IssueSummary[] | null>(null)
   const [dragSource, setDragSource] = useState<DragSource>('list')
   const timers = useRef<Record<'overlay' | 'flash' | 'toast' | 'sync', number | undefined>>({
     overlay: undefined,
@@ -415,7 +419,7 @@ export function useMovesController({
     for (const [view, done] of [['open', false], ['closed', true]] as const) {
       queryClient.setQueryData<IssueList>(['issues', viewJql(view)], (old) => {
         if (!old) return old
-        const joining = issues.filter((i) => isMine(i, me) && (i.status.category === 'done') === done)
+        const joining = issues.filter((i) => isAssignedTo(i, me) && (i.status.category === 'done') === done)
         return { ...old, issues: [...joining, ...old.issues.filter((i) => !keys.has(i.key))] }
       })
     }
@@ -496,30 +500,35 @@ export function useMovesController({
       failed.length > 0 ? ERROR_TOAST_MS : TOAST_MS,
     )
 
-  const assignToMe = async (issues: IssueSummary[]) => {
+  const assignTo = async (issues: IssueSummary[], to: Person) => {
     const { ok, failed } = await setAssignees(
       issues,
-      () => me,
+      () => to,
       (i) => i.assignee,
     )
-    reportAssignment(ok, failed, 'assigned to you', me)
+    reportAssignment(ok, failed, `assigned to ${to.accountId === me.accountId ? 'you' : to.displayName}`, to)
   }
 
-  /** Hands tickets to the user, once they said it is fine to take them from whoever has them. */
-  const requestAssign = (group: IssueSummary[]) => {
-    const issues = group.filter((i) => !isMine(i, me))
+  /** Hands tickets to `to` (the user by default), once they said it is fine to take them from whoever has them. */
+  const requestAssign = (group: IssueSummary[], to: Person = me) => {
+    const issues = group.filter((i) => !isAssignedTo(i, to))
     if (issues.length === 0) {
-      showToast({ moved: [], message: `${countOf(group)} already assigned to you`, errors: [] })
+      showToast({
+        moved: [],
+        message: `${countOf(group)} already assigned to ${to.accountId === me.accountId ? 'you' : to.displayName}`,
+        errors: [],
+      })
       return
     }
     const taken = issues.filter((i) => i.assignee)
     if (taken.length === 0) {
-      void assignToMe(issues)
+      void assignTo(issues, to)
       return
     }
     const names = [...new Set(taken.map((i) => i.assignee!.displayName))].join(', ')
     setAssignConfirm({
       issues,
+      to,
       lines:
         taken.length <= 4
           ? taken.map((i) => `${i.key} is assigned to ${i.assignee!.displayName}.`)
@@ -536,6 +545,8 @@ export function useMovesController({
     reportAssignment(ok, failed, 'unassigned', null)
   }
 
+  const closeAssigning = useCallback(() => setAssigning(null), [])
+
   const endDrag = () => {
     window.clearTimeout(timers.current.overlay)
     setIsDragging(false)
@@ -546,16 +557,20 @@ export function useMovesController({
     marked: new Set(marked.map((i) => i.key)),
     dragging: new Set(isDragging ? dragged.map((i) => i.key) : []),
     flash: new Set(flash),
-    toggleMark: (issue) =>
+    toggleMark: (issue) => {
+      // Picking tickets again leaves the picker's tickets behind
+      setAssigning(null)
       setMarked((prev) => {
         const base = prev.length > 0 ? prev : selected ? [selected] : []
         if (base.some((m) => m.key === issue.key)) return base.filter((m) => m.key !== issue.key)
         // Any ticket can join: tickets in different statuses can still be edited together
         return [...base, issue]
-      }),
+      })
+    },
     clearMarks: () => setMarked((prev) => (prev.length > 0 ? [] : prev)),
     assign: (issue) => requestAssign(marked.some((m) => m.key === issue.key) ? marked : [issue]),
     startDrag: (issue, e, source = 'list') => {
+      setAssigning(null)
       const group = marked.some((m) => m.key === issue.key) ? marked : [issue]
       e.dataTransfer.effectAllowed = 'move'
       try {
@@ -589,7 +604,8 @@ export function useMovesController({
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || editing || input || assignConfirm) return
-      if (isDragging) endDrag()
+      if (assigning) setAssigning(null)
+      else if (isDragging) endDrag()
       else if (marked.length > 0) setMarked([])
     }
     window.addEventListener('keydown', onKeyDown)
@@ -613,6 +629,21 @@ export function useMovesController({
         endDrag()
         void unassign(dragged)
       },
+      onAssign: () => {
+        endDrag()
+        setAssigning(dragged)
+      },
+    },
+    /** Tickets dropped on "Assign to…": the person to give them to is being picked */
+    assignPicker: {
+      issues: assigning,
+      pick: (person: Person) => {
+        const issues = assigning
+        setAssigning(null)
+        if (issues) requestAssign(issues, person)
+      },
+      // Stable: a screen effect closes the picker when another ticket is opened
+      cancel: closeAssigning,
     },
     /** Tickets dragged from the board, waiting to be dropped on the Open list */
     boardDrag: {
@@ -628,7 +659,7 @@ export function useMovesController({
     confirmAssign: () => {
       const pending = assignConfirm
       setAssignConfirm(null)
-      if (pending) void assignToMe(pending.issues)
+      if (pending) void assignTo(pending.issues, pending.to)
     },
     cancelAssign: () => setAssignConfirm(null),
     /** The tickets being edited in bulk, while the dialog is open */
