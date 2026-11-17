@@ -1,5 +1,35 @@
 # tracket
 
+## 0.7.0
+
+### Minor Changes
+
+- [#16](https://github.com/Hydhen/tracket/pull/16) [`0070143`](https://github.com/Hydhen/tracket/commit/0070143126fbefbc6c6597cec0589afd3f8b6880) Thanks [@Hydhen](https://github.com/Hydhen)! - Drag tickets onto the new "Assign to…" zone to give them to someone. Your favorite people (up to 12, chosen in Settings under Favorite assignees) come first, with a search for anyone else. Undo gives the tickets back.
+
+- [#16](https://github.com/Hydhen/tracket/pull/16) [`893082b`](https://github.com/Hydhen/tracket/commit/893082b816addd5628ee67cf3e5a3a291e0d3afb) Thanks [@Hydhen](https://github.com/Hydhen)! - Tickets dragged from the Board now get the same drop zones as the ones of the lists: edit their fields, assign them to someone, unassign them, or move them to another status. Dropping them on the Open list still takes them.
+
+- [#14](https://github.com/Hydhen/tracket/pull/14) [`a0777fd`](https://github.com/Hydhen/tracket/commit/a0777fdb70271917fbc2f64d8b01424b7b9d5940) Thanks [@Hydhen](https://github.com/Hydhen)! - The side view can now sit below the main view instead of beside it. Use the new button next to the one that closes the side view to switch between the two layouts; Tracket remembers your choice.
+
+- [#16](https://github.com/Hydhen/tracket/pull/16) [`dc832f1`](https://github.com/Hydhen/tracket/commit/dc832f1174714655965b1f3bea8ff29d4da3a26b) Thanks [@Hydhen](https://github.com/Hydhen)! - Pictures and videos open full size in a viewer. Zoom with the buttons, the wheel or a double-click, drag to move around, and take it to full screen.
+
+- [#16](https://github.com/Hydhen/tracket/pull/16) [`62df517`](https://github.com/Hydhen/tracket/commit/62df517ea4a0a238fc60beec1c2785432063d4ae) Thanks [@Hydhen](https://github.com/Hydhen)! - A new "Resolve defaults" page in Settings: choose the fields (a resolution, a comment, the time spent, components…) and the values they get when you move a ticket to a done status. When these cover everything Jira asks for, the ticket moves straight away, without the dialog; otherwise the dialog opens with them already filled in.
+
+- [#16](https://github.com/Hydhen/tracket/pull/16) [`dc832f1`](https://github.com/Hydhen/tracket/commit/dc832f1174714655965b1f3bea8ff29d4da3a26b) Thanks [@Hydhen](https://github.com/Hydhen)! - Videos attached to a ticket now play, in the description, in the comments and from the attachments list. Pictures embedded in a description or a comment show too, and the list opens pictures as well.
+
+- [#16](https://github.com/Hydhen/tracket/pull/16) [`dc832f1`](https://github.com/Hydhen/tracket/commit/dc832f1174714655965b1f3bea8ff29d4da3a26b) Thanks [@Hydhen](https://github.com/Hydhen)! - The ticket view has a refresh button and an "Edit metadata" button next to the others.
+
+- [#16](https://github.com/Hydhen/tracket/pull/16) [`dc832f1`](https://github.com/Hydhen/tracket/commit/dc832f1174714655965b1f3bea8ff29d4da3a26b) Thanks [@Hydhen](https://github.com/Hydhen)! - The top row of a ticket stays in view while you scroll: its key, its buttons and, once you scroll past the big title, a shortened title.
+
+- [#16](https://github.com/Hydhen/tracket/pull/16) [`dc832f1`](https://github.com/Hydhen/tracket/commit/dc832f1174714655965b1f3bea8ff29d4da3a26b) Thanks [@Hydhen](https://github.com/Hydhen)! - "Unassign" now sits below "Assign to…" wherever you drag tickets, not only from the Board.
+
+- [#16](https://github.com/Hydhen/tracket/pull/16) [`dc832f1`](https://github.com/Hydhen/tracket/commit/dc832f1174714655965b1f3bea8ff29d4da3a26b) Thanks [@Hydhen](https://github.com/Hydhen)! - A new "What's new" view lists what changed in each version, in a few readable lines. It opens on its own the first time you start a new version, and from Settings, under About.
+
+### Patch Changes
+
+- [#16](https://github.com/Hydhen/tracket/pull/16) [`bb34553`](https://github.com/Hydhen/tracket/commit/bb3455318dfe4fa392421bcf1e904d4469a9f7c8) Thanks [@Hydhen](https://github.com/Hydhen)! - In the bulk edit dialog, the arrow keys on the "Add" and "Remove" menus of a field such as Components now only spin through the options instead of adding each one: press Space or Tab to add the one shown, Delete to go back to "Choose…", and Enter to open the menu.
+
+- [#15](https://github.com/Hydhen/tracket/pull/15) [`80d783d`](https://github.com/Hydhen/tracket/commit/80d783dc2052bcc051a2348706500906e262a215) Thanks [@Hydhen](https://github.com/Hydhen)! - The main view and the side view now share the space evenly when the side view opens, on the Board too. Double-clicking the divider between them brings the split back to even.
+
 ## 0.6.0
 
 ### Minor Changes
