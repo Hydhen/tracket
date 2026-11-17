@@ -1,5 +1,6 @@
 import { createContext, useContext, type DragEvent } from 'react'
 import type { IssueSummary } from '@/lib/api'
+import type { DragSource } from './useMovesController'
 
 type Status = IssueSummary['status']
 
@@ -14,8 +15,11 @@ export interface TicketMoves {
   /** Ctrl/Cmd+click: adds or removes a ticket from the group (same status as the first only) */
   toggleMark: (issue: IssueSummary) => void
   clearMarks: () => void
-  startDrag: (issue: IssueSummary, e: DragEvent) => void
+  /** `source` is the board when the ticket is being handed out rather than moved or edited */
+  startDrag: (issue: IssueSummary, e: DragEvent, source?: DragSource) => void
   endDrag: () => void
+  /** Assigns the ticket (or the whole group it is picked in) to the user, asking first when someone else has it */
+  assign: (issue: IssueSummary) => void
   /** Moves tickets to a status: checks, applies it, then offers to undo */
   move: (issues: IssueSummary[], target: Status) => void
 }
@@ -30,6 +34,7 @@ export const TicketMovesContext = createContext<TicketMoves>({
   clearMarks: () => {},
   startDrag: () => {},
   endDrag: () => {},
+  assign: () => {},
   move: () => {},
 })
 

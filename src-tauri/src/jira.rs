@@ -5,11 +5,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::auth::load_credentials;
+use crate::detail::{Person, RawUser};
 use crate::error::{AppError, Result};
 
 const MAX_RESULTS: u32 = 100;
 
-const ISSUE_FIELDS: [&str; 8] = [
+pub(crate) const ISSUE_FIELDS: [&str; 9] = [
     "summary",
     "parent",
     "status",
@@ -18,6 +19,7 @@ const ISSUE_FIELDS: [&str; 8] = [
     "updated",
     "issuetype",
     "project",
+    "assignee",
 ];
 
 #[derive(Serialize, Clone)]
@@ -49,6 +51,8 @@ pub struct IssueSummary {
     /// False for sub-tasks, which can't have children of their own.
     pub can_have_children: bool,
     pub project_key: String,
+    /// Who the ticket is assigned to, if anyone.
+    pub assignee: Option<Person>,
     /// Key of the parent issue (the epic of a story, the story of a sub-task…).
     pub parent_key: Option<String>,
     /// `YYYY-MM-DD`
@@ -74,7 +78,7 @@ struct SearchResponse {
 }
 
 #[derive(Deserialize)]
-struct RawIssue {
+pub(crate) struct RawIssue {
     id: String,
     key: String,
     fields: RawFields,
@@ -89,6 +93,7 @@ struct RawFields {
     updated: String,
     issuetype: RawNamed,
     project: RawProject,
+    assignee: Option<RawUser>,
     parent: Option<RawParent>,
 }
 
@@ -189,6 +194,29 @@ pub(crate) async fn ensure_ok(response: reqwest::Response) -> Result<reqwest::Re
     }
 }
 
+/// What the lists show of an issue, from Jira's answer (search and the agile board endpoints share its shape).
+pub(crate) fn summarize(raw: RawIssue, site: &str) -> IssueSummary {
+    IssueSummary {
+        url: format!("{site}/browse/{}", raw.key),
+        id: raw.id,
+        key: raw.key,
+        summary: raw.fields.summary,
+        status: raw.fields.status.into(),
+        priority: raw.fields.priority.map(Named::from),
+        can_have_children: raw
+            .fields
+            .issuetype
+            .hierarchy_level
+            .is_none_or(|level| level >= 0),
+        issue_type: raw.fields.issuetype.into(),
+        project_key: raw.fields.project.key,
+        assignee: raw.fields.assignee.map(Person::from),
+        parent_key: raw.fields.parent.map(|p| p.key),
+        due_date: raw.fields.duedate,
+        updated: raw.fields.updated,
+    }
+}
+
 /// Runs a JQL query and returns up to `limit` (at most [`MAX_RESULTS`]) issues, in the query's order.
 #[tauri::command]
 pub async fn search_issues(
@@ -217,24 +245,7 @@ pub async fn search_issues(
     let issues = body
         .issues
         .into_iter()
-        .map(|raw| IssueSummary {
-            url: format!("{}/browse/{}", credentials.site, raw.key),
-            id: raw.id,
-            key: raw.key,
-            summary: raw.fields.summary,
-            status: raw.fields.status.into(),
-            priority: raw.fields.priority.map(Named::from),
-            can_have_children: raw
-                .fields
-                .issuetype
-                .hierarchy_level
-                .is_none_or(|level| level >= 0),
-            issue_type: raw.fields.issuetype.into(),
-            project_key: raw.fields.project.key,
-            parent_key: raw.fields.parent.map(|p| p.key),
-            due_date: raw.fields.duedate,
-            updated: raw.fields.updated,
-        })
+        .map(|raw| summarize(raw, &credentials.site))
         .collect();
 
     Ok(IssueList {

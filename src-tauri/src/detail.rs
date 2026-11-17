@@ -9,7 +9,7 @@ use crate::jira::ensure_ok;
 const DETAIL_FIELDS: &str =
     "description,comment,attachment,assignee,reporter,labels,created,parent";
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Person {
     pub account_id: Option<String>,
@@ -81,7 +81,7 @@ struct RawFields {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct RawUser {
+pub(crate) struct RawUser {
     account_id: Option<String>,
     display_name: String,
     avatar_urls: Option<HashMap<String, String>>,

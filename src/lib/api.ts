@@ -23,6 +23,7 @@ export interface IssueSummary {
   /** False for sub-tasks */
   canHaveChildren: boolean
   projectKey: string
+  assignee: Person | null
   parentKey: string | null
   /** YYYY-MM-DD */
   dueDate: string | null
@@ -146,6 +147,34 @@ export interface Person {
   avatarUrl: string | null
 }
 
+export interface Board {
+  id: number
+  name: string
+  /** `simple` is a team-managed project's board */
+  kind: 'scrum' | 'kanban' | 'simple' | (string & {})
+  projectKey: string | null
+}
+
+export interface Project {
+  key: string
+  name: string
+}
+
+export interface BoardColumn {
+  name: string
+  /** Jira status ids shown in the column */
+  statusIds: string[]
+}
+
+export interface Sprint {
+  id: number
+  name: string
+  state: 'active' | 'future' | (string & {})
+}
+
+/** What to read from a board: all of it, its backlog, or one sprint */
+export type BoardScope = { kind: 'board' } | { kind: 'backlog' } | { kind: 'sprint'; id: number }
+
 export interface Attachment {
   id: string
   filename: string
@@ -216,6 +245,14 @@ export const api = {
   currentSession: () => call<Session | null>('current_session'),
   logout: () => call<void>('logout'),
   searchIssues: (jql: string, limit?: number) => call<IssueList>('search_issues', { jql, limit }),
+  /** Jira Software boards (none on a site without it) */
+  listBoards: () => call<Board[]>('list_boards'),
+  listProjects: () => call<Project[]>('list_projects'),
+  getBoardColumns: (boardId: number) => call<BoardColumn[]>('get_board_columns', { boardId }),
+  /** Active and planned sprints; empty for a kanban board */
+  getBoardSprints: (boardId: number) => call<Sprint[]>('get_board_sprints', { boardId }),
+  getBoardIssues: (boardId: number, scope: BoardScope, jql?: string) =>
+    call<IssueList>('get_board_issues', { boardId, scope, jql }),
   getIssue: (key: string) => call<IssueDetail>('get_issue', { key }),
   /** The description as Jira wiki markup, for editing */
   getDescriptionSource: (key: string) => call<string>('get_description_source', { key }),

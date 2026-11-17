@@ -34,7 +34,7 @@ export function MoveToast({
               </div>
             ))}
           </div>
-          {movedLabel && (
+          {(movedLabel || toast.revert) && (
             <button
               onClick={onUndo}
               className="h-11 shrink-0 rounded-lg px-3.5 text-[13px] font-semibold text-blue-600 hover:bg-accent dark:text-blue-300"
@@ -58,7 +58,7 @@ export function MoveToast({
               Open in Jira
             </button>
           )}
-          {!movedLabel && (
+          {!movedLabel && !toast.revert && (
             <button onClick={onDismiss} className="h-11 shrink-0 rounded-lg px-3.5 text-[13px] hover:bg-accent">
               Dismiss
             </button>

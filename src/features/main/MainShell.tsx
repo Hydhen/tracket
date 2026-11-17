@@ -7,6 +7,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
+import { BoardView } from '@/features/board/BoardView'
 import { BulkEditDialog } from '@/features/bulk/BulkEditDialog'
 import { IssueDetail } from '@/features/issues/IssueDetail'
 import { IssueList } from '@/features/issues/IssueList'
@@ -32,19 +33,23 @@ import { cn } from '@/lib/utils'
 const VIEW_KEY = 'tracket-view'
 const ISSUE_KEY = /^[A-Z][A-Z0-9_]*-\d+$/
 
-/** 'timers' has no tab: the sidebar's timer summary leads to it, and it isn't restored on launch */
-type View = ListView | 'tree' | 'timers'
+/**
+ * 'timers' has no tab: the sidebar's timer summary leads to it, and it isn't restored on launch.
+ * 'board' puts a Jira board in the main pane, with the Open list kept in the sidebar to take tickets into.
+ */
+type View = ListView | 'tree' | 'board' | 'timers'
 
 const VIEWS: { id: View; label: string; empty: string }[] = [
   { id: 'open', label: 'Open', empty: 'Nothing assigned to you. Enjoy the quiet.' },
   { id: 'closed', label: 'Closed', empty: 'No closed or resolved tickets assigned to you.' },
   { id: 'tree', label: 'Tree', empty: '' },
+  { id: 'board', label: 'Board', empty: 'Nothing assigned to you yet. Drag tickets here from the board.' },
 ]
 
 function loadView(): View {
   try {
     const saved = appStorage.getItem(VIEW_KEY)
-    return saved === 'closed' || saved === 'tree' ? saved : 'open'
+    return saved === 'closed' || saved === 'tree' || saved === 'board' ? saved : 'open'
   } catch {
     return 'open'
   }
@@ -60,6 +65,8 @@ export function MainShell({ session }: { session: Session }) {
   const [view, setView] = useState(loadView)
   const isTree = view === 'tree'
   const isTimers = view === 'timers'
+  const isBoard = view === 'board'
+  // The board's sidebar is the Open list, to take tickets into
   const isList = !isTree && !isTimers
   // The tree and the timers have their own data; the open list still backs search suggestions and the key prefix
   const { data, error, isPending, isFetching, isPlaceholderData, refetch } = useIssues(
@@ -109,18 +116,23 @@ export function MainShell({ session }: { session: Session }) {
 
   const issues = data?.issues ?? []
   const known = [...issues, ...extras.filter((e) => !issues.some((i) => i.key === e.key))]
-  // Fall back to the first issue when nothing is selected or the selection left the list
-  const selected = known.find((i) => i.key === selectedKey) ?? (isList ? issues[0] : undefined)
+  // Fall back to the first issue when nothing is selected or the selection left the list.
+  // The board fills the main pane: a ticket opens beside it, in the side view.
+  const selected = isBoard
+    ? undefined
+    : (known.find((i) => i.key === selectedKey) ?? (isList ? issues[0] : undefined))
   // The side view only shows while its issue is known and differs from the main one
   const side = known.find((i) => i.key === sideKey && i.key !== selected?.key)
 
   // Tickets moved to another status: the copies kept in state follow, the query caches are patched by the controller
   const movesController = useMovesController({
     selected,
+    me: { accountId: session.accountId, displayName: session.displayName, avatarUrl: session.avatarUrl },
     patchLocal: (patches) =>
       setExtras((prev) => prev.map((e) => (patches[e.key] ? { ...e, ...patches[e.key] } : e))),
   })
-  const { moves, overlay, toast, confirm, editing, input } = movesController
+  const { moves, overlay, boardDrag, toast, confirm, assignConfirm, editing, input } = movesController
+  const [dropHover, setDropHover] = useState(false)
 
   // Selecting the issue shown in the side view swaps the two
   const select = (key: string) => {
@@ -256,6 +268,13 @@ export function MainShell({ session }: { session: Session }) {
             )}
           </div>
 
+          {isBoard && (
+            <div className="border-b bg-muted/40 px-4 py-1.5 text-xs text-muted-foreground">
+              Drop board tickets here to take them. Drag one out onto the board to give it back.
+            </div>
+          )}
+
+          <div className="relative flex min-h-0 flex-1 flex-col">
           {isTimers ? (
             <TimersView
               selectedKey={selected?.key}
@@ -304,11 +323,38 @@ export function MainShell({ session }: { session: Session }) {
                 issues={issues}
                 selectedKey={selected?.key}
                 sideKey={side?.key}
-                onSelect={select}
+                // The board has the main pane: a ticket of the list opens beside it
+                onSelect={isBoard ? setSideKey : select}
                 onOpenSide={setSideKey}
               />
             </div>
           )}
+
+          {boardDrag.active && (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault() // makes the list a valid drop target
+                e.dataTransfer.dropEffect = 'move'
+                setDropHover(true)
+              }}
+              onDragLeave={(e) => {
+                // Leaving for a child doesn't count
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropHover(false)
+              }}
+              onDrop={(e) => {
+                e.preventDefault()
+                setDropHover(false)
+                boardDrag.drop()
+              }}
+              className={cn(
+                'absolute inset-0 z-10 flex items-center justify-center border-2 border-dashed bg-background/80 p-6 text-center text-sm font-medium backdrop-blur-[2px] transition-colors',
+                dropHover ? 'border-primary bg-primary/10 text-foreground' : 'border-muted-foreground/40 text-muted-foreground',
+              )}
+            >
+              <span className="pointer-events-none">Drop to assign to you</span>
+            </div>
+          )}
+          </div>
 
           {isList && error && data && (
             <div className="border-t bg-destructive/10 px-4 py-1.5 text-xs text-destructive">
@@ -335,19 +381,30 @@ export function MainShell({ session }: { session: Session }) {
         {/* The overlay and the toast belong to the detail pane only: the list stays visible and droppable-from */}
         <div className="relative flex min-w-0 flex-1">
           <ResizablePanelGroup key={side ? 'split' : 'single'} orientation="horizontal" className="min-w-0 flex-1">
-            <ResizablePanel id="main" defaultSize="50%" minSize="25%">
-              <main className="h-full overflow-auto p-6">
-                {selected && (
-                  <IssueDetail
-                    key={selected.key}
-                    issue={selected}
-                    site={session.site}
-                    onOpenIssue={openFromTree}
-                    onOpenAsTree={openAsTree}
-                    isTreeRoot={tree.roots.includes(selected.key)}
+            <ResizablePanel id="main" defaultSize={isBoard ? '62%' : '50%'} minSize="25%">
+              {isBoard ? (
+                <main className="h-full min-w-0">
+                  <BoardView
+                    me={session.accountId}
+                    myIssues={issues}
+                    openKey={side?.key}
+                    onOpen={(issue) => openFromTree(issue, true)}
                   />
-                )}
-              </main>
+                </main>
+              ) : (
+                <main className="h-full overflow-auto p-6">
+                  {selected && (
+                    <IssueDetail
+                      key={selected.key}
+                      issue={selected}
+                      site={session.site}
+                      onOpenIssue={openFromTree}
+                      onOpenAsTree={openAsTree}
+                      isTreeRoot={tree.roots.includes(selected.key)}
+                    />
+                  )}
+                </main>
+              )}
             </ResizablePanel>
             {side && (
               <>
@@ -370,7 +427,7 @@ export function MainShell({ session }: { session: Session }) {
                     <ChevronRight className="pointer-events-none size-3.5" />
                   </button>
                 </div>
-                <ResizablePanel id="side" defaultSize="50%" minSize="25%">
+                <ResizablePanel id="side" defaultSize={isBoard ? '38%' : '50%'} minSize="25%">
                   <aside className="h-full overflow-auto p-6">
                     <IssueDetail
                       key={side.key}
@@ -386,7 +443,14 @@ export function MainShell({ session }: { session: Session }) {
             )}
           </ResizablePanelGroup>
 
-        <StatusGraphOverlay open={overlay.open} issues={overlay.issues} onDrop={overlay.onDrop} onEdit={overlay.onEdit} />
+        <StatusGraphOverlay
+          open={overlay.open}
+          issues={overlay.issues}
+          onDrop={overlay.onDrop}
+          onEdit={overlay.onEdit}
+          // On the board, a ticket of the Open list can be dropped to give it back
+          onUnassign={isBoard ? overlay.onUnassign : undefined}
+        />
         <MoveToast toast={toast} onUndo={movesController.undo} onDismiss={movesController.dismissToast} />
         <UpdateNotice />
         </div>
@@ -401,6 +465,23 @@ export function MainShell({ session }: { session: Session }) {
             {confirm.lines.map((line) => (
               <p key={line}>{line}</p>
             ))}
+          </ConfirmDialog>
+        )}
+
+        {assignConfirm && (
+          <ConfirmDialog
+            title="Take over from someone else?"
+            confirmLabel="Assign to me"
+            onConfirm={movesController.confirmAssign}
+            onCancel={movesController.cancelAssign}
+          >
+            {assignConfirm.lines.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+            <p>
+              Assigning {assignConfirm.issues.length > 1 ? 'them' : 'it'} to you replaces who has{' '}
+              {assignConfirm.issues.length > 1 ? 'them' : 'it'} now.
+            </p>
           </ConfirmDialog>
         )}
 
