@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Choice, EditField, FieldChange, IssueSummary } from '@/lib/api'
 import { useBulkDefaults } from './defaultFields'
-import { emptyDraft, fieldProblem, toChange, type Draft } from './edits'
+import { emptyDraft, fieldProblem, fitDraft, toChange, type Draft } from './edits'
 import { FieldEditor } from './fieldEditors'
 import { commonValue, editMetaQuery, sharedFields } from './sharedFields'
 
@@ -54,12 +54,19 @@ export function BulkEditDialog({
   const defaults = useBulkDefaults((s) => s.fields)
   const setDefaults = useBulkDefaults((s) => s.set)
 
-  // Once Jira has said which fields are shared, start with the defaults among them
+  // Once Jira has said which fields are shared, start with the defaults among them, filled in with their default values
   const [seeded, setSeeded] = useState(false)
   if (fields && !seeded) {
     setSeeded(true)
     const start = defaults.filter((d) => fields.some((f) => f.key === d.key)).map((d) => d.key)
+    const values: Record<string, Draft> = {}
+    for (const d of defaults) {
+      const field = fields.find((f) => f.key === d.key)
+      const draft = field && d.value ? fitDraft(field, d.value) : null
+      if (draft) values[d.key] = draft
+    }
     setPicked(start)
+    setDrafts(values)
     setFocusKey(start[0])
   }
 
@@ -224,7 +231,8 @@ export function BulkEditDialog({
               className="-ml-2"
               onClick={() =>
                 setDefaults([
-                  ...rows.map((f) => ({ key: f.key, name: f.name })),
+                  // Only which fields start the dialog is saved: what was typed here is for these tickets, so the values set in the settings stay
+                  ...rows.map((f) => ({ ...defaults.find((d) => d.key === f.key), key: f.key, name: f.name })),
                   // Defaults these tickets don't share weren't on screen: keep them
                   ...defaults.filter((d) => !fields.some((f) => f.key === d.key)),
                 ])
