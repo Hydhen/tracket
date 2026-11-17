@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -108,7 +108,24 @@ function LabelList({
   )
 }
 
-/** The chosen options as chips, and a menu for the others. */
+/** Keys that move a closed select's selection: Chromium changes the value (and says so) on each press */
+const SPIN_KEYS = new Set(['ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'])
+
+/** Whether a select's menu is showing. `:open` isn't known to every webview: `fallback` says then. */
+function isMenuOpen(select: HTMLSelectElement, fallback: boolean) {
+  try {
+    return select.matches(':open')
+  } catch {
+    return fallback
+  }
+}
+
+/**
+ * The chosen options as chips, and a menu for the others.
+ *
+ * With the keyboard, the arrows (and typing a name) only spin through the options: the one shown is added by Space or
+ * by leaving the menu with Tab, Delete or Backspace go back to "Choose…", and Enter opens the menu. Picking in the opened menu with the mouse adds at once.
+ */
 function ChoiceList({
   id,
   options,
@@ -128,6 +145,51 @@ function ChoiceList({
   const left = options.filter((o) => !chosen.includes(o.id) && !taken.includes(o.id))
   const nameOf = (optionId: string) => options.find((o) => o.id === optionId)?.name ?? optionId
 
+  // The option a key press landed on, waiting for Space or Tab
+  const [pending, setPending] = useState('')
+  // A key pressed while the menu was closed is what is changing the selection
+  const keyed = useRef(false)
+  // For webviews that can't tell whether the menu is open: it opens with a click, Enter or Space
+  const menuOpen = useRef(false)
+
+  const add = (optionId: string) => {
+    setPending('')
+    onChange([...chosen, optionId])
+  }
+
+  const onKeyDown = (e: KeyboardEvent<HTMLSelectElement>) => {
+    const select = e.currentTarget
+    // Alt+Down and the like are the browser's own
+    if (e.altKey || e.ctrlKey || e.metaKey) return
+    // The menu has its own keys
+    if (isMenuOpen(select, menuOpen.current)) {
+      if (e.key === 'Escape') menuOpen.current = false
+      return
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      menuOpen.current = true
+      try {
+        ;(select as HTMLSelectElement & { showPicker?: () => void }).showPicker?.()
+      } catch {
+        // can't be opened from here: a click does
+      }
+    } else if (e.key === ' ') {
+      if (pending) {
+        e.preventDefault()
+        add(pending)
+      } else {
+        menuOpen.current = true // opens the menu
+      }
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+      // Back to "Choose…": nothing is waiting to be added
+      e.preventDefault()
+      setPending('')
+    } else if (SPIN_KEYS.has(e.key) || e.key.length === 1) {
+      keyed.current = true
+    }
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       {chosen.map((optionId) => (
@@ -140,9 +202,31 @@ function ChoiceList({
       ))}
       <select
         id={id}
-        value=""
+        value={pending}
         disabled={left.length === 0}
-        onChange={(e) => e.target.value && onChange([...chosen, e.target.value])}
+        onMouseDown={() => {
+          menuOpen.current = true
+        }}
+        onKeyDown={onKeyDown}
+        onKeyUp={() => {
+          keyed.current = false
+        }}
+        onChange={(e) => {
+          const value = e.target.value
+          if (!value) return
+          if (keyed.current) {
+            setPending(value)
+            return
+          }
+          menuOpen.current = false
+          add(value)
+        }}
+        // Leaving with Tab adds what the arrows stopped on
+        onBlur={() => {
+          keyed.current = false
+          menuOpen.current = false
+          if (pending) add(pending)
+        }}
         className="h-7 max-w-full rounded-md border border-input bg-background px-1.5 text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
       >
         <option value="">{left.length === 0 ? 'None left' : 'Choose…'}</option>
