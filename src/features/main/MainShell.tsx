@@ -11,6 +11,7 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/componen
 import { AssignPicker } from '@/features/assign/AssignPicker'
 import { BoardView } from '@/features/board/BoardView'
 import { BulkEditDialog } from '@/features/bulk/BulkEditDialog'
+import { MediaViewer } from '@/features/media/MediaViewer'
 import { IssueDetail } from '@/features/issues/IssueDetail'
 import { IssueList } from '@/features/issues/IssueList'
 import { TicketActionsContext } from '@/features/issues/ticketActions'
@@ -21,6 +22,7 @@ import { TimerChip } from '@/features/timer/TimerChip'
 import { TimersView } from '@/features/timer/TimersView'
 import { useUpdates } from '@/features/update/updateStore'
 import { UpdateNotice } from '@/features/update/UpdateNotice'
+import { WhatsNew } from '@/features/whatsnew/WhatsNew'
 import { TicketMovesContext } from '@/features/transitions/movesContext'
 import { MoveToast } from '@/features/transitions/MoveToast'
 import { StatusGraphOverlay } from '@/features/transitions/StatusGraphOverlay'
@@ -249,7 +251,7 @@ export function MainShell({ session }: { session: Session }) {
         <aside className="flex w-96 flex-col border-r">
           <button
             onClick={() => setPalette('open')}
-            className="flex items-center gap-2 border-b px-4 py-3 text-left text-sm text-muted-foreground hover:bg-accent"
+            className="flex h-[45px] items-center gap-2 border-b px-4 text-left text-sm text-muted-foreground hover:bg-accent"
           >
             <Search className="size-4" />
             <span>Search tickets…</span>
@@ -433,7 +435,7 @@ export function MainShell({ session }: { session: Session }) {
                   />
                 </main>
               ) : (
-                <main className="h-full overflow-auto p-6">
+                <main className="h-full overflow-auto">
                   {selected && (
                     <IssueDetail
                       key={selected.key}
@@ -492,7 +494,7 @@ export function MainShell({ session }: { session: Session }) {
                   </div>
                 </div>
                 <ResizablePanel id="side" defaultSize="50%" minSize="25%">
-                  <aside className="h-full overflow-auto p-6">
+                  <aside className="h-full overflow-auto">
                     <IssueDetail
                       key={side.key}
                       issue={side}
@@ -573,6 +575,10 @@ export function MainShell({ session }: { session: Session }) {
             onCancel={movesController.cancelEdit}
           />
         )}
+
+        <MediaViewer />
+
+        <WhatsNew />
 
         {settingsOpen && <SettingsDialog linkProject={settingsProject} site={session.site.replace('https://', '')} onClose={() => setSettingsOpen(false)} />}
 

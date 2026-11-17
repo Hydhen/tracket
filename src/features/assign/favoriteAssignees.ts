@@ -3,8 +3,8 @@ import { persist } from 'zustand/middleware'
 import { persistStorage } from '@/lib/storage'
 import type { User } from '@/lib/api'
 
-/** The "Assign to…" view lists them all, so they have to fit on one row */
-export const MAX_FAVORITE_ASSIGNEES = 5
+/** The "Assign to…" view lists them all, in a few rows of cards: more would push the search below the fold */
+export const MAX_FAVORITE_ASSIGNEES = 12
 
 interface FavoriteAssigneesState {
   /** In the order the "Assign to…" view shows them */

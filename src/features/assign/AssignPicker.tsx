@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Spinner } from '@/components/Spinner'
 import type { IssueSummary, Person, User } from '@/lib/api'
 import { cn } from '@/lib/utils'
-import { useFavoriteAssignees } from './favoriteAssignees'
+import { MAX_FAVORITE_ASSIGNEES, useFavoriteAssignees } from './favoriteAssignees'
 import { useAssignableUsers } from './useAssignableUsers'
 
 const GLOW = '#5eead4'
@@ -59,7 +59,7 @@ export function AssignPicker({
         <X className="size-4" />
       </button>
 
-      <div className="m-auto flex w-full max-w-xl flex-col items-center">
+      <div className="m-auto flex w-full max-w-2xl flex-col items-center">
         <div className="text-center">
           <div className="text-xl font-bold tracking-tight">Assign {what} to…</div>
           <div className="mt-1.5 text-[13px] text-[#a0a0a8]">Pick a favorite, or search for someone else</div>
@@ -92,7 +92,7 @@ export function AssignPicker({
           })}
           {favorites.length === 0 && (
             <p className="max-w-sm text-center text-[13px] text-[#a0a0a8]">
-              No favorite yet. Add up to 5 people in Settings, under Favorite assignees, to find them here.
+              No favorite yet. Add up to {MAX_FAVORITE_ASSIGNEES} people in Settings, under Favorite assignees, to find them here.
             </p>
           )}
         </div>

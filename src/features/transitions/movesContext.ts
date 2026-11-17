@@ -22,6 +22,8 @@ export interface TicketMoves {
   assign: (issue: IssueSummary) => void
   /** Moves tickets to a status: checks, applies it, then offers to undo */
   move: (issues: IssueSummary[], target: Status) => void
+  /** Opens the dialog that edits the fields of the tickets */
+  edit: (issues: IssueSummary[]) => void
 }
 
 const empty: ReadonlySet<string> = new Set()
@@ -36,6 +38,7 @@ export const TicketMovesContext = createContext<TicketMoves>({
   endDrag: () => {},
   assign: () => {},
   move: () => {},
+  edit: () => {},
 })
 
 export const useTicketMoves = () => useContext(TicketMovesContext)

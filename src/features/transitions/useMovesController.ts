@@ -625,6 +625,7 @@ export function useMovesController({
     },
     endDrag,
     move: (issues, target) => void requestMove(issues, target),
+    edit: (issues) => setEditing(issues),
   }
 
   // Esc cancels a drag, then clears a group (the edit dialog handles its own Esc)
