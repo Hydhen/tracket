@@ -12,6 +12,7 @@ import {
   type Transition,
 } from '@/lib/api'
 import { BOARD_ISSUES } from '@/features/board/useBoard'
+import { useResolveDefaults } from '@/features/bulk/defaultFields'
 import type { Draft } from '@/features/bulk/edits'
 import { editMetaQuery } from '@/features/bulk/sharedFields'
 import { viewJql } from '@/features/issues/useIssues'
@@ -19,7 +20,16 @@ import { summarizeChildren } from '@/features/tree/progress'
 import { childrenQuery } from '@/features/tree/useTree'
 import { transitionId, useLearnedFields } from './learnedFields'
 import type { TicketMoves } from './movesContext'
-import { moveInput, namedIn, needsInput, screenKeys, transitionsQuery, type MoveInput } from './transitions'
+import {
+  moveInput,
+  namedIn,
+  needsInput,
+  screenKeys,
+  seedFromDefaults,
+  transitionsQuery,
+  type MoveInput,
+  type MoveSeed,
+} from './transitions'
 
 /** The fields this transition turned out to insist on, in this project (see `useLearnedFields`). */
 const learnedFor = (issue: IssueSummary, transition: Transition) =>
@@ -121,8 +131,14 @@ export function useMovesController({
   } | null>(null)
   // Jira can ask for more after each try: what the user already filled in stays until the move is done
   const remembered = useRef(new Map<string, RememberedInput>())
-  const openInput = (issues: IssueSummary[], target: Status, needed: MoveInput) =>
-    setInput({ issues, target, needed, remembered: remembered.current.get(moveKey(issues, target)) })
+  // `seed`: what the defaults fill in, when nothing was typed yet for this move
+  const openInput = (issues: IssueSummary[], target: Status, needed: MoveInput, seed?: MoveSeed) =>
+    setInput({
+      issues,
+      target,
+      needed,
+      remembered: remembered.current.get(moveKey(issues, target)) ?? (seed && { drafts: seed.drafts, added: seed.added }),
+    })
   // Kept after the drag ends so the overlay doesn't change content while it fades out
   const [dragged, setDragged] = useState<IssueSummary[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -364,18 +380,30 @@ export function useMovesController({
     return lines
   }
 
-  /** Some moves need more than the click (a resolution, a comment…): asks first, then moves. */
+  /**
+   * Some moves need more than the click (a resolution, a comment…): asks first, then moves. A move to a done status
+   * starts from the Resolve defaults of the settings: when they cover everything Jira asks for, it just goes through.
+   */
   const moveOrAsk = async (issues: IssueSummary[], target: Status) => {
-    let needed: MoveInput | null = null
+    let screen: MoveInput | null = null
     try {
       const lists = await Promise.all(issues.map((i) => queryClient.fetchQuery(transitionsQuery(i.key))))
-      const screen = moveInput(issues, lists, target, learnedFor)
-      needed = needsInput(screen) ? screen : null
+      screen = moveInput(issues, lists, target, learnedFor)
     } catch {
       // can't tell: try the move, and Jira's own message will say what is missing
     }
-    if (needed) openInput(issues, target, needed)
-    else await execute(issues, target)
+    const defaults = target.category === 'done' ? useResolveDefaults.getState().fields : []
+    const seed = screen && defaults.length > 0 ? seedFromDefaults(screen, defaults, issues) : undefined
+
+    if (screen && needsInput(screen) && !seed?.complete) {
+      openInput(issues, target, screen, seed)
+    } else if (seed && seed.changes.length > 0) {
+      // Kept like what is typed in the dialog: if Jira refuses, its retry starts from these values
+      remembered.current.set(moveKey(issues, target), { drafts: seed.drafts, added: seed.added })
+      await execute(issues, target, seed.changes)
+    } else {
+      await execute(issues, target)
+    }
   }
 
   const requestMove = async (issues: IssueSummary[], target: Status) => {

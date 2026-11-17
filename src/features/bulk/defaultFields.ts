@@ -43,7 +43,7 @@ function readValue(stored: unknown): Draft | undefined {
   return isEmptyDraft(draft) ? undefined : draft
 }
 
-interface BulkDefaultsState {
+interface DefaultsState {
   /** In the order the dialog shows them */
   fields: DefaultField[]
   add: (field: DefaultField) => void
@@ -55,51 +55,62 @@ interface BulkDefaultsState {
   set: (fields: DefaultField[]) => void
 }
 
-export const useBulkDefaults = create<BulkDefaultsState>()(
-  persist(
-    (set) => ({
-      fields: [],
-      add: (field) => set((s) => (s.fields.some((f) => f.key === field.key) ? s : { fields: [...s.fields, field] })),
-      remove: (key) => set((s) => ({ fields: s.fields.filter((f) => f.key !== key) })),
-      moveTo: (key, to) =>
-        set((s) => {
-          const from = s.fields.findIndex((f) => f.key === key)
-          if (from < 0 || from === to || to < 0 || to >= s.fields.length) return s
-          const fields = [...s.fields]
-          const [field] = fields.splice(from, 1)
-          fields.splice(to, 0, field)
-          return { fields }
-        }),
-      setValue: (key, value) =>
-        set((s) => ({
-          fields: s.fields.map((f) => {
-            if (f.key !== key) return f
-            const { key: k, name } = f
-            return value && !isEmptyDraft(value) ? { key: k, name, value } : { key: k, name }
+/** A list of default fields kept under `name`; the bulk edit dialog and the move to "resolved" each have theirs. */
+function createDefaults(name: string) {
+  return create<DefaultsState>()(
+    persist(
+      (set) => ({
+        fields: [],
+        add: (field) => set((s) => (s.fields.some((f) => f.key === field.key) ? s : { fields: [...s.fields, field] })),
+        remove: (key) => set((s) => ({ fields: s.fields.filter((f) => f.key !== key) })),
+        moveTo: (key, to) =>
+          set((s) => {
+            const from = s.fields.findIndex((f) => f.key === key)
+            if (from < 0 || from === to || to < 0 || to >= s.fields.length) return s
+            const fields = [...s.fields]
+            const [field] = fields.splice(from, 1)
+            fields.splice(to, 0, field)
+            return { fields }
           }),
-        })),
-      set: (fields) => set({ fields }),
-    }),
-    {
-      name: 'tracket-bulk-fields',
-      storage: persistStorage,
-      version: 1,
-      partialize: (s) => ({ fields: s.fields }),
-      // Keep only well-formed, distinct entries, in case the stored data was edited by hand
-      merge: (persisted, current) => {
-        const stored = (persisted as { fields?: unknown } | undefined)?.fields
-        const fields: DefaultField[] = []
-        if (Array.isArray(stored)) {
-          for (const entry of stored) {
-            const { key, name, value } = (entry ?? {}) as Partial<Record<keyof DefaultField, unknown>>
-            if (typeof key === 'string' && FIELD_KEY.test(key) && typeof name === 'string' && !fields.some((f) => f.key === key)) {
-              const draft = readValue(value)
-              fields.push(draft ? { key, name: name || key, value: draft } : { key, name: name || key })
+        setValue: (key, value) =>
+          set((s) => ({
+            fields: s.fields.map((f) => {
+              if (f.key !== key) return f
+              const { key: k, name } = f
+              return value && !isEmptyDraft(value) ? { key: k, name, value } : { key: k, name }
+            }),
+          })),
+        set: (fields) => set({ fields }),
+      }),
+      {
+        name,
+        storage: persistStorage,
+        version: 1,
+        partialize: (s) => ({ fields: s.fields }),
+        // Keep only well-formed, distinct entries, in case the stored data was edited by hand
+        merge: (persisted, current) => {
+          const stored = (persisted as { fields?: unknown } | undefined)?.fields
+          const fields: DefaultField[] = []
+          if (Array.isArray(stored)) {
+            for (const entry of stored) {
+              const { key, name, value } = (entry ?? {}) as Partial<Record<keyof DefaultField, unknown>>
+              if (typeof key === 'string' && FIELD_KEY.test(key) && typeof name === 'string' && !fields.some((f) => f.key === key)) {
+                const draft = readValue(value)
+                fields.push(draft ? { key, name: name || key, value: draft } : { key, name: name || key })
+              }
             }
           }
-        }
-        return { ...current, fields }
+          return { ...current, fields }
+        },
       },
-    },
-  ),
-)
+    ),
+  )
+}
+
+/** The fields the bulk edit dialog starts with */
+export const useBulkDefaults = createDefaults('tracket-bulk-fields')
+
+/** The fields filled in when a ticket is moved to a done status ("resolved"), with the values they get */
+export const useResolveDefaults = createDefaults('tracket-resolve-defaults')
+
+export type DefaultsStore = typeof useBulkDefaults

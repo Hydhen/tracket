@@ -2,23 +2,13 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import { X } from 'lucide-react'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Button } from '@/components/ui/button'
-import { emptyDraft, fieldProblem, toChange, type Draft } from '@/features/bulk/edits'
+import { emptyDraft, fieldProblem, type Draft } from '@/features/bulk/edits'
 import { FieldEditor } from '@/features/bulk/fieldEditors'
-import type { EditField, FieldChange, IssueSummary } from '@/lib/api'
-import type { MoveInput } from './transitions'
+import type { FieldChange, IssueSummary } from '@/lib/api'
+import { filledChange, type MoveInput } from './transitions'
 import type { RememberedInput } from './useMovesController'
 
 type Status = IssueSummary['status']
-
-/** A field is filled in when there is a real value for it, not just a clearing. */
-function filled(field: EditField, draft: Draft, issues: IssueSummary[]): FieldChange | null {
-  const change = toChange(field, draft, issues)
-  if (!change) return null
-  const needsText = ['text', 'number', 'date', 'longText', 'timeSpent'].includes(field.kind)
-  if (needsText && !draft.value.trim()) return null
-  if (field.kind === 'user' && !draft.user?.accountId) return null
-  return change
-}
 
 /**
  * Asks for what Jira insists on before it moves tickets to a status (a resolution, a comment…).
@@ -59,7 +49,7 @@ export function TransitionInputDialog({
     ...input.fields,
     ...added.flatMap((key) => (input.fields.some((f) => f.key === key) ? [] : (input.optional.find((f) => f.key === key) ?? []))),
   ]
-  const changes = rows.map((field) => filled(field, draftOf(field.key), issues))
+  const changes = rows.map((field) => filledChange(field, draftOf(field.key), issues))
   const canMove = changes.every((change) => change !== null) && input.unsupported.length === 0
   const started = Object.keys(drafts).length > 0 || added.length > 0
   const more = input.optional.filter((f) => !added.includes(f.key))
