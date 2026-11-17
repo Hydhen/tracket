@@ -19,8 +19,7 @@ export function ResolveDefaultsSettings() {
     queries.flatMap((q) =>
       (q.data ?? [])
         .filter((t) => t.to.category === 'done')
-        // Time spent adds a worklog on every move: not something to repeat by default
-        .map((t) => [...t.required, ...t.optional].filter((f) => f.kind !== 'timeSpent')),
+        .map((t) => [...t.required, ...t.optional]),
     ),
   )
 
