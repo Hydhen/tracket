@@ -100,18 +100,25 @@ app's code changed.
 
 ### Releasing
 
-Releases are automatic.
+Work lands on `develop`; `release` is production. Pushing to `release` is what releases.
 
-1. On every push to `main`, the **Changesets** workflow gathers the changesets that have landed into a **Release the
-   next version** pull request, and keeps it up to date. It raises the version in `package.json`,
-   `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`, and writes `CHANGELOG.md`.
-2. Merging that pull request is the release. The **Release** workflow sees a version that has no tag yet, lints and
-   tests, then builds and signs the installer, publishes `v<version>` with the changelog as its notes, and checks that
-   the release has the installer, its signature and a valid `latest.json`.
-3. Installed apps pick the update up from that `latest.json`.
+1. Pull requests go into `develop`, each with its changeset.
+2. To release, fast-forward `release` to `develop`:
 
-Any other push to `main` releases nothing, since its version is already tagged. You can also run the **Release**
-workflow by hand from the **Actions** tab.
+   ```bash
+   git push origin origin/develop:release
+   ```
+
+   (or merge a pull request from `develop` into `release` with a merge commit, never a squash)
+3. The **Release** workflow does the rest. It gathers the changesets into `CHANGELOG.md` and raises the version in
+   `package.json`, `src-tauri/tauri.conf.json` and `src-tauri/Cargo.toml`, commits that to `release` and merges the
+   commit back into `develop` (so the changesets aren't gathered twice). Then it lints and tests, builds and signs the
+   installer, publishes `v<version>` with the changelog as its notes, and checks that the release has the installer,
+   its signature and a valid `latest.json`.
+4. Installed apps pick the update up from that `latest.json`.
+
+A push to `release` with no changeset to gather releases nothing, since its version is already tagged. If the build
+fails after the version commit, run the **Release** workflow again from the **Actions** tab, on the `release` branch.
 
 Updates are signed with a key kept outside the repository. The public half is in `src-tauri/tauri.conf.json`; the
 private half and its password are the repository secrets `TAURI_SIGNING_PRIVATE_KEY` and

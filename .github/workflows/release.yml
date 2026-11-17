@@ -1,22 +1,19 @@
 name: Release
 
-# Every push to main whose version has not been released yet builds, signs and publishes it.
-# The version is raised by merging the "Version Packages" pull request that changesets.yml keeps open: it gathers
-# the changesets, writes CHANGELOG.md and sets the same version in package.json, src-tauri/tauri.conf.json and
-# src-tauri/Cargo.toml (all three must agree). A push that doesn't change the version releases nothing.
+# develop is where the work lands: a pull request per change, each with a changeset (see .changeset/README.md).
+# release is production. Pushing to it (fast-forward it to develop) ships everything develop has gathered:
+#
+#   1. version:      the changesets are gathered into CHANGELOG.md and the version is raised in package.json,
+#                    src-tauri/tauri.conf.json and src-tauri/Cargo.toml (all three must agree). That is committed
+#                    to release.
+#   2. sync-develop: that commit is merged back into develop, so its changesets aren't gathered a second time.
+#   3. build:        the installer is built, signed and published as v<version>.
+#
+# A push that leaves the version as it is (already tagged) releases nothing. Run the workflow by hand from the
+# Actions tab, on the release branch, to build a version whose build failed.
 on:
   push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'LICENSE'
-      - 'LICENSES/**'
-      - 'branding/**'
-      - '.github/ISSUE_TEMPLATE/**'
-      - '.github/dependabot.yml'
-      - '.github/workflows/ci.yml'
-      - '.github/workflows/changesets.yml'
-      - '.changeset/**'
+    branches: [release]
   workflow_dispatch:
 
 permissions:
@@ -27,14 +24,104 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  version:
+    name: Gather the changesets
+    # A manual run can pick any branch: only release ships
+    if: github.ref_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      version: ${{ steps.commit.outputs.version }}
+      bumped: ${{ steps.commit.outputs.bumped }}
+    steps:
+      # The branch itself, not the commit that started the run: a re-run must see the version commit made by the first
+      - uses: actions/checkout@v7
+        with:
+          ref: release
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - run: npm ci
+
+      - id: commit
+        env:
+          # Lets the changelog link each entry to its pull request
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # `changeset version` fails when there is nothing to gather, so only ask it when a changeset is waiting
+          if [ -n "$(find .changeset -maxdepth 1 -name '*.md' ! -name README.md)" ]; then
+            npm run version-packages
+          fi
+
+          version="$(node -p "require('./package.json').version")"
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            # Changesets that say "no release note" are gathered too, without a new version
+            if git diff --cached --quiet -- package.json; then
+              git commit -m "Gather the changesets that need no release note"
+            else
+              git commit -m "Release v$version"
+            fi
+            # Not rejected unless someone pushed to release since this run began: then run it again
+            git push origin HEAD:release
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::No changeset to gather: the version stays $version."
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  sync-develop:
+    name: Bring the version back to develop
+    needs: version
+    if: needs.version.outputs.bumped == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: develop
+
+      - name: Merge release into develop
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # develop may have moved while this ran: take it as it is now, merge again, and retry the push
+          for attempt in 1 2 3; do
+            git fetch origin develop release
+            git reset --hard origin/develop
+            if ! git merge --no-ff origin/release -m "Bring release v$VERSION back into develop"; then
+              git merge --abort
+              echo "::error::release v$VERSION doesn't merge into develop cleanly. Merge release into develop by hand: until then the next release would gather these changesets again."
+              exit 1
+            fi
+            git push origin HEAD:develop && exit 0
+          done
+          echo "::error::develop keeps moving: merge release into it by hand."
+          exit 1
+
   check:
     name: Is there a version to release?
+    needs: version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
       release: ${{ steps.version.outputs.release }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
 
       - id: version
         env:
@@ -53,7 +140,7 @@ jobs:
 
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" >/dev/null 2>&1; then
             echo "release=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::v$version is already released. Raise the version to ship something new."
+            echo "::notice::v$version is already released. Add a changeset to develop to ship something new."
           else
             echo "release=true" >> "$GITHUB_OUTPUT"
             echo "::notice::v$version has not been released yet: building it."
@@ -61,7 +148,7 @@ jobs:
 
   build:
     name: Build and publish v${{ needs.check.outputs.version }}
-    needs: check
+    needs: [version, check]
     if: needs.check.outputs.release == 'true'
     runs-on: windows-latest
     permissions:
@@ -70,7 +157,10 @@ jobs:
       VERSION: ${{ needs.check.outputs.version }}
       GH_TOKEN: ${{ github.token }}
     steps:
+      # The version commit, which has the new version and the changelog
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
 
       - uses: actions/setup-node@v7
         with:
@@ -99,7 +189,7 @@ jobs:
         with:
           tagName: v${{ env.VERSION }}
           releaseName: Tracket v${{ env.VERSION }}
-          releaseCommitish: ${{ github.sha }}
+          releaseCommitish: ${{ needs.version.outputs.sha }}
           releaseDraft: false
           prerelease: false
 
@@ -137,7 +227,7 @@ jobs:
           Already installed? Tracket offers this update by itself.
 
           EOF
-            # What changed: the changesets of this version, gathered in CHANGELOG.md by the Version Packages pull request
+            # What changed: the changesets of this version, gathered in CHANGELOG.md by the version job
             changes="$(tr -d '\r' < CHANGELOG.md | awk -v v="$VERSION" '$0 == "## " v { found = 1; next } /^## / { found = 0 } found' \
               | sed -e 's/^### Major Changes$/### Breaking changes/' -e 's/^### Minor Changes$/### New/' -e 's/^### Patch Changes$/### Fixes/')"
             if [ -n "$(echo "$changes" | tr -d '[:space:]')" ]; then

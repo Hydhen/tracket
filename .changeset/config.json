@@ -3,7 +3,7 @@
   "changelog": ["@changesets/changelog-github", { "repo": "Hydhen/tracket" }],
   "commit": false,
   "access": "restricted",
-  "baseBranch": "main",
+  "baseBranch": "develop",
   "updateInternalDependencies": "patch",
   "ignore": [],
   "privatePackages": { "version": true, "tag": false }

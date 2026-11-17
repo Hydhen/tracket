@@ -13,5 +13,5 @@ Commit the generated file with your change. It survives a squash merge, since it
 Changes nobody will notice (docs, CI, refactors, tests) don't need a release note: run `npm run changeset -- --empty`
 to say so.
 
-When changesets reach `main`, a **Version Packages** pull request collects them, raises the version and writes
-`CHANGELOG.md`. Merging that pull request releases the new version.
+When `develop` is pushed to `release`, the changesets that have landed are gathered into `CHANGELOG.md`, the
+version is raised and the new version is built and published (see "Releasing" in the README).
