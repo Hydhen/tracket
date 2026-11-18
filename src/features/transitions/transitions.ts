@@ -75,6 +75,37 @@ export function moveInput(
   return { fields: [...asked.values()], optional: [...optional.values()], unsupported: [...unsupported] }
 }
 
+/** Fields the tickets don't hold as a value of their own: a comment to write, work to log */
+const NOT_ON_TICKET = ['comment', 'worklog']
+
+/** The required fields whose current value on the tickets tells whether they are already filled in. */
+export const filledCheckKeys = (input: MoveInput) =>
+  input.fields.filter((f) => !NOT_ON_TICKET.includes(f.key)).map((f) => f.key)
+
+/**
+ * Jira's screen marks a field as required whether or not the ticket already has it (a component, a category…), and
+ * the move goes through with the value that is there. So a required field every ticket already holds isn't asked for:
+ * it moves to the optional ones (still there to change), and `filled` says which. `values` is what each ticket
+ * holds now, in the order of the tickets; a ticket whose values are unknown counts as empty.
+ */
+export function withoutFilled(
+  input: MoveInput,
+  values: (Record<string, string[]> | undefined)[],
+): { input: MoveInput; filled: string[] } {
+  const holds = (key: string) => values.every((v) => (v?.[key]?.length ?? 0) > 0)
+  const checkable = filledCheckKeys(input)
+  const filled = input.fields.filter((f) => checkable.includes(f.key) && holds(f.key))
+  if (filled.length === 0) return { input, filled: [] }
+  return {
+    input: {
+      ...input,
+      fields: input.fields.filter((f) => !filled.includes(f)),
+      optional: [...input.optional, ...filled],
+    },
+    filled: filled.map((f) => f.key),
+  }
+}
+
 /** Whether the move has to wait for the user to fill something in. */
 export const needsInput = (input: MoveInput) => input.fields.length > 0 || input.unsupported.length > 0
 
