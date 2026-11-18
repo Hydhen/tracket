@@ -1,5 +1,13 @@
 # tracket
 
+## 0.7.2
+
+### Patch Changes
+
+- [#18](https://github.com/Hydhen/tracket/pull/18) [`272ff8e`](https://github.com/Hydhen/tracket/commit/272ff8e56f5c0bd892f638b2fbcc24ad558f3f6c) Thanks [@Hydhen](https://github.com/Hydhen)! - Paste a picture (a screenshot, a copied image) into a comment or a description and it is attached to the ticket and shown where you pasted it. It is attached when you post or save, so cancelling leaves nothing on the ticket.
+
+- [#18](https://github.com/Hydhen/tracket/pull/18) [`03d37ad`](https://github.com/Hydhen/tracket/commit/03d37ad45f432a8f61e42e705d3e46dd245dce53) Thanks [@Hydhen](https://github.com/Hydhen)! - Moving a ticket no longer asks for required fields the ticket already has (a component, a category…): they are checked on the ticket when you move it, and are only asked for when one is empty. The ones left out stay under "Also on Jira's screen for this move" if you want to change them.
+
 ## 0.7.1
 
 ### Patch Changes
