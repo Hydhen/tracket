@@ -20,6 +20,7 @@ import { CommandPalette } from '@/features/search/CommandPalette'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
 import { TimerChip } from '@/features/timer/TimerChip'
 import { TimersView } from '@/features/timer/TimersView'
+import { useTimerBadge } from '@/features/timer/useTimerBadge'
 import { useUpdates } from '@/features/update/updateStore'
 import { UpdateNotice } from '@/features/update/UpdateNotice'
 import { WhatsNew } from '@/features/whatsnew/WhatsNew'
@@ -82,6 +83,8 @@ function Message({ children }: { children: ReactNode }) {
 export function MainShell({ session }: { session: Session }) {
   const [selectedKey, setSelectedKey] = useState<string>()
   const [sideKey, setSideKey] = useState<string>()
+  // A red dot on the taskbar icon while a timer runs, also when the window is the small pill
+  useTimerBadge()
   const [view, setView] = useState(loadView)
   const [sideLayout, setSideLayout] = useState<SideLayout>(layoutForWindow)
   const stacked = sideLayout === 'rows'

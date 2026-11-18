@@ -1,5 +1,6 @@
 mod attachment;
 mod auth;
+mod badge;
 mod board;
 mod comment;
 mod detail;
@@ -83,6 +84,7 @@ pub fn run() {
             workspace::open_in_herdr,
             storage::storage_load,
             storage::storage_set,
+            badge::set_timer_badge,
             mini::enter_mini,
             mini::leave_mini,
         ])
