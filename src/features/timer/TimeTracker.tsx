@@ -1,10 +1,11 @@
 import { useMutation } from '@tanstack/react-query'
 import { Pause, Play, Timer as TimerIcon, Trash2 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
 import { api, type ApiError } from '@/lib/api'
+import { submitOnCtrlEnter } from '@/lib/submitShortcut'
 import { cn } from '@/lib/utils'
 import { formatClock, formatDuration, jiraTimestamp, parseDuration } from './duration'
 import { RecordingDot } from './RecordingDot'
@@ -52,12 +53,18 @@ export function TimeTracker({ issueKey }: { issueKey: string }) {
     setLogging(true)
   }
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
+  const submit = (e?: FormEvent) => {
+    e?.preventDefault()
     if (seconds !== null && seconds >= 60 && !log.isPending) log.mutate(seconds)
   }
 
   const durationInvalid = duration.trim() !== '' && (seconds === null || seconds < 60)
+
+  const submitOnShortcut = submitOnCtrlEnter(submit)
+  const onFormKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && !log.isPending) setLogging(false)
+    else submitOnShortcut(e)
+  }
 
   return (
     <section
@@ -125,7 +132,7 @@ export function TimeTracker({ issueKey }: { issueKey: string }) {
       </div>
 
       {logging && (
-        <form onSubmit={submit} onKeyDown={(e) => e.key === 'Escape' && !log.isPending && setLogging(false)} className="mt-3 space-y-2">
+        <form onSubmit={submit} onKeyDown={onFormKeyDown} className="mt-3 space-y-2">
           <div className="flex items-center gap-2">
             <label htmlFor={`worklog-duration-${issueKey}`} className="text-xs text-muted-foreground">
               Time spent
