@@ -1,5 +1,11 @@
 # tracket
 
+## 0.7.3
+
+### Patch Changes
+
+- [#19](https://github.com/Hydhen/tracket/pull/19) [`99ad5bc`](https://github.com/Hydhen/tracket/commit/99ad5bcd841de949a00ddc621078bcc55757ad6b) Thanks [@Hydhen](https://github.com/Hydhen)! - A small red dot shows on Tracket's icon in the Windows taskbar while at least one timer is running.
+
 ## 0.7.2
 
 ### Patch Changes
