@@ -3,6 +3,7 @@ import { useState, type KeyboardEvent } from 'react'
 import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
 import { api, type ApiError } from '@/lib/api'
+import { usePastedImages } from './usePastedImages'
 
 /**
  * Edits a description as Jira wiki markup (what Jira's REST API v2 exposes as text).
@@ -10,6 +11,7 @@ import { api, type ApiError } from '@/lib/api'
  */
 export function DescriptionEditor({ issueKey, onDone }: { issueKey: string; onDone: () => void }) {
   const queryClient = useQueryClient()
+  const images = usePastedImages(issueKey)
   const source = useQuery<string, ApiError>({
     queryKey: ['description-source', issueKey],
     queryFn: () => api.getDescriptionSource(issueKey),
@@ -25,6 +27,8 @@ export function DescriptionEditor({ issueKey, onDone }: { issueKey: string; onDo
 
   const save = useMutation<void, ApiError>({
     mutationFn: async () => {
+      // The description refers to the pictures by name: they have to be on the ticket first
+      await images.attach(text)
       await api.updateDescription(issueKey, text)
       // Wait for the rendered description to refresh, so the old one doesn't flash back
       await Promise.all([
@@ -60,6 +64,7 @@ export function DescriptionEditor({ issueKey, onDone }: { issueKey: string; onDo
           autoFocus
           value={text}
           onChange={(e) => setDraft(e.target.value)}
+          onPaste={(e) => images.paste(e, text, setDraft)}
           disabled={save.isPending}
           spellCheck
           aria-label="Description (Jira wiki markup)"
@@ -77,7 +82,7 @@ export function DescriptionEditor({ issueKey, onDone }: { issueKey: string; onDo
         <Button variant="ghost" size="sm" onClick={onDone} disabled={save.isPending}>
           Cancel
         </Button>
-        <span className="ml-auto text-xs text-muted-foreground">Jira wiki markup · Ctrl+Enter to save</span>
+        <span className="ml-auto text-xs text-muted-foreground">Jira wiki markup · paste an image to attach it · Ctrl+Enter to save</span>
       </div>
     </div>
   )

@@ -23,10 +23,12 @@ import type { TicketMoves } from './movesContext'
 import {
   moveInput,
   namedIn,
+  filledCheckKeys,
   needsInput,
   screenKeys,
   seedFromDefaults,
   transitionsQuery,
+  withoutFilled,
   type MoveInput,
   type MoveSeed,
 } from './transitions'
@@ -386,14 +388,42 @@ export function useMovesController({
    */
   const moveOrAsk = async (issues: IssueSummary[], target: Status) => {
     let screen: MoveInput | null = null
+    // Required fields the tickets already hold: not asked, and not overwritten by the defaults either
+    let filled: string[] = []
     try {
       const lists = await Promise.all(issues.map((i) => queryClient.fetchQuery(transitionsQuery(i.key))))
       screen = moveInput(issues, lists, target, learnedFor)
     } catch {
       // can't tell: try the move, and Jira's own message will say what is missing
     }
+    if (screen) {
+      try {
+        const keys = filledCheckKeys(screen)
+        if (keys.length > 0) {
+          // What the tickets hold right now, not what a list remembers: it may have been filled in since
+          const values = await Promise.all(
+            issues.map((i) =>
+              queryClient.fetchQuery({
+                queryKey: ['move-field-values', i.key, keys.join(',')],
+                queryFn: () => api.getFieldValues(i.key, keys),
+                staleTime: 0,
+                gcTime: 0,
+              }),
+            ),
+          )
+          const checked = withoutFilled(screen, values)
+          screen = checked.input
+          filled = checked.filled
+        }
+      } catch {
+        // can't tell: every required field is asked for, as Jira's screen says
+      }
+    }
     const defaults = target.category === 'done' ? useResolveDefaults.getState().fields : []
-    const seed = screen && defaults.length > 0 ? seedFromDefaults(screen, defaults, issues) : undefined
+    const seed =
+      screen && defaults.length > 0
+        ? seedFromDefaults({ ...screen, optional: screen.optional.filter((f) => !filled.includes(f.key)) }, defaults, issues)
+        : undefined
 
     if (screen && needsInput(screen) && !seed?.complete) {
       openInput(issues, target, screen, seed)
