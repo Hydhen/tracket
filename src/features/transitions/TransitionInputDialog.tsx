@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { emptyDraft, fieldProblem, type Draft } from '@/features/bulk/edits'
 import { FieldEditor } from '@/features/bulk/fieldEditors'
 import type { FieldChange, IssueSummary } from '@/lib/api'
+import { submitOnCtrlEnter } from '@/lib/submitShortcut'
 import { filledChange, type MoveInput } from './transitions'
 import type { RememberedInput } from './useMovesController'
 
@@ -79,6 +80,7 @@ export function TransitionInputDialog({
         aria-modal="true"
         aria-labelledby="move-title"
         onSubmit={submit}
+        onKeyDown={submitOnCtrlEnter(submit)}
         className="flex max-h-[82vh] w-full max-w-md flex-col overflow-hidden rounded-lg border bg-background text-foreground shadow-xl"
       >
         <div className="border-b px-4 py-3">

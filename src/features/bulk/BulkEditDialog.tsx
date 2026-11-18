@@ -5,6 +5,7 @@ import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Choice, EditField, FieldChange, IssueSummary } from '@/lib/api'
+import { submitOnCtrlEnter } from '@/lib/submitShortcut'
 import { useBulkDefaults } from './defaultFields'
 import { emptyDraft, fieldProblem, fitDraft, toChange, type Draft } from './edits'
 import { FieldEditor } from './fieldEditors'
@@ -121,6 +122,7 @@ export function BulkEditDialog({
         aria-modal="true"
         aria-labelledby="bulk-title"
         onSubmit={apply}
+        onKeyDown={submitOnCtrlEnter(apply)}
         className="flex max-h-[84vh] w-full max-w-lg flex-col overflow-hidden rounded-lg border bg-background text-foreground shadow-xl"
       >
         <div className="flex items-start gap-3 border-b px-4 py-3">

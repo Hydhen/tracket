@@ -78,7 +78,8 @@ function LabelList({
     onDraft('')
   }
   const onKeyDown = (e: KeyboardEvent) => {
-    if ((e.key === 'Enter' && draft.trim()) || e.key === ',' || e.key === ' ') {
+    // Ctrl+Enter submits the form: the label being typed is taken then, not added here
+    if ((e.key === 'Enter' && !e.ctrlKey && !e.metaKey && draft.trim()) || e.key === ',' || e.key === ' ') {
       e.preventDefault()
       commit()
     } else if (e.key === 'Backspace' && !draft && labels.length > 0) {
