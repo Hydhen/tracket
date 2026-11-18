@@ -35,7 +35,6 @@ import { appStorage } from '@/lib/storage'
 import { cn } from '@/lib/utils'
 
 const VIEW_KEY = 'tracket-view'
-const SIDE_LAYOUT_KEY = 'tracket-side-layout'
 const ISSUE_KEY = /^[A-Z][A-Z0-9_]*-\d+$/
 
 /**
@@ -63,13 +62,18 @@ function loadView(): View {
 /** How the main view and the side view share the pane: next to each other, or one above the other */
 type SideLayout = 'columns' | 'rows'
 
-function loadSideLayout(): SideLayout {
-  try {
-    return appStorage.getItem(SIDE_LAYOUT_KEY) === 'rows' ? 'rows' : 'columns'
-  } catch {
-    return 'columns'
-  }
+/** Each time the side view opens it follows the window's shape: side by side when wide, stacked when tall */
+function layoutForWindow(): SideLayout {
+  return window.innerHeight > window.innerWidth ? 'rows' : 'columns'
 }
+
+/**
+ * The round buttons on the divider. While the pointer is over the divider's grab area the resize library forces its
+ * resize cursor on every element with `*:hover { cursor: … !important }`; the important `hover:` variant is more
+ * specific than that rule, so these keep the pointer.
+ */
+const SIDE_BUTTON =
+  'flex size-5 items-center justify-center rounded-full border bg-background text-muted-foreground hover:cursor-pointer! hover:bg-accent hover:text-foreground'
 
 function Message({ children }: { children: ReactNode }) {
   return <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center text-sm text-muted-foreground">{children}</div>
@@ -79,7 +83,7 @@ export function MainShell({ session }: { session: Session }) {
   const [selectedKey, setSelectedKey] = useState<string>()
   const [sideKey, setSideKey] = useState<string>()
   const [view, setView] = useState(loadView)
-  const [sideLayout, setSideLayout] = useState(loadSideLayout)
+  const [sideLayout, setSideLayout] = useState<SideLayout>(layoutForWindow)
   const stacked = sideLayout === 'rows'
   // Double-clicking the divider between the main and side views evens them out
   const splitRef = useGroupRef()
@@ -121,15 +125,8 @@ export function MainShell({ session }: { session: Session }) {
     }
   }
 
-  const toggleSideLayout = () => {
-    const next = stacked ? 'columns' : 'rows'
-    setSideLayout(next)
-    try {
-      appStorage.setItem(SIDE_LAYOUT_KEY, next)
-    } catch {
-      // the choice still applies for this session
-    }
-  }
+  // Switches the layout of the side view that is open; the next one to open starts from the window's shape again
+  const toggleSideLayout = () => setSideLayout(stacked ? 'columns' : 'rows')
 
   // What the palette is for: opening a ticket, or picking a root for the tree
   const [palette, setPalette] = useState<'open' | 'tree' | null>(null)
@@ -153,6 +150,13 @@ export function MainShell({ session }: { session: Session }) {
     : (known.find((i) => i.key === selectedKey) ?? (isList ? issues[0] : undefined))
   // The side view only shows while its issue is known and differs from the main one
   const side = known.find((i) => i.key === sideKey && i.key !== selected?.key)
+
+  // The side view opening picks its layout from the window's shape (adjusted while rendering, so it never shows the old layout first)
+  const [sideShown, setSideShown] = useState(false)
+  if (!!side !== sideShown) {
+    setSideShown(!!side)
+    if (side) setSideLayout(layoutForWindow())
+  }
 
   // Tickets moved to another status: the copies kept in state follow, the query caches are patched by the controller
   const movesController = useMovesController({
@@ -471,7 +475,7 @@ export function MainShell({ session }: { session: Session }) {
                       title="Close side view"
                       aria-label="Close side view"
                       onClick={() => setSideKey(undefined)}
-                      className="flex size-5 items-center justify-center rounded-full border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
+                      className={SIDE_BUTTON}
                     >
                       {stacked ? (
                         <ChevronDown className="pointer-events-none size-3.5" />
@@ -483,7 +487,7 @@ export function MainShell({ session }: { session: Session }) {
                       title={stacked ? 'Put the side view beside the main one' : 'Put the side view below the main one'}
                       aria-label={stacked ? 'Split vertically' : 'Split horizontally'}
                       onClick={toggleSideLayout}
-                      className="flex size-5 items-center justify-center rounded-full border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
+                      className={SIDE_BUTTON}
                     >
                       {stacked ? (
                         <Columns2 className="pointer-events-none size-3" />
