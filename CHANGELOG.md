@@ -1,5 +1,11 @@
 # tracket
 
+## 0.7.1
+
+### Patch Changes
+
+- [#17](https://github.com/Hydhen/tracket/pull/17) [`87ee98d`](https://github.com/Hydhen/tracket/commit/87ee98dfff447df398e277e79a705b8f0220414f) Thanks [@Hydhen](https://github.com/Hydhen)! - The side view now opens in the layout that suits the window: side by side when the window is wider than tall, stacked when it is taller. The button on the divider switches the open side view to the other layout, and the next one opens from the window's shape again. The buttons on the divider also show the pointer cursor instead of the resize one.
+
 ## 0.7.0
 
 ### Minor Changes
