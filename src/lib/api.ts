@@ -309,6 +309,8 @@ export const api = {
   /** `started` in Jira's timestamp format, see `jiraTimestamp` */
   /** Shrinks the window to the timer pill (always on top), or puts it back */
   setMini: (on: boolean) => call<void>(on ? 'enter_mini' : 'leave_mini'),
+  /** The red dot on the app's icon in the taskbar (Windows) */
+  setTimerBadge: (running: boolean) => call<void>('set_timer_badge', { running }),
   addWorklog: (key: string, seconds: number, started: string, comment?: string) =>
     call<void>('add_worklog', { key, seconds, started, comment }),
 }
