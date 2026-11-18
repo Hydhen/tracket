@@ -231,12 +231,25 @@ export class ApiError extends Error {
 }
 
 // Rust commands reject with `{ kind, message }`; turn that into a real Error
+function toApiError(e: unknown): ApiError {
+  const err = e as { kind?: ApiErrorKind; message?: string }
+  return new ApiError(err.kind ?? 'unexpected', err.message ?? String(e))
+}
+
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   try {
     return await invoke<T>(command, args)
   } catch (e) {
-    const err = e as { kind?: ApiErrorKind; message?: string }
-    throw new ApiError(err.kind ?? 'unexpected', err.message ?? String(e))
+    throw toApiError(e)
+  }
+}
+
+/** A call whose body is raw bytes (a file), with what else it needs in headers */
+async function callWithBytes<T>(command: string, bytes: Uint8Array, headers: Record<string, string>): Promise<T> {
+  try {
+    return await invoke<T>(command, bytes, { headers })
+  } catch (e) {
+    throw toApiError(e)
   }
 }
 
@@ -263,6 +276,9 @@ export const api = {
     call<void>('transition_issue', { key, transitionId, changes }),
   updateDescription: (key: string, text: string) => call<void>('update_description', { key, text }),
   /** `text` is Jira wiki markup */
+  /** Attaches a picture to the ticket, so wiki markup can show it as `!filename!` */
+  uploadAttachment: (key: string, filename: string, bytes: Uint8Array) =>
+    callWithBytes<void>('upload_attachment', bytes, { key, filename }),
   addComment: (key: string, text: string) => call<void>('add_comment', { key, text }),
   getCommentSource: (key: string, id: string) => call<CommentSource>('get_comment_source', { key, id }),
   updateComment: (key: string, id: string, text: string) => call<void>('update_comment', { key, id, text }),

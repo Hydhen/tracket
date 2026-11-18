@@ -1,3 +1,4 @@
+mod attachment;
 mod auth;
 mod board;
 mod comment;
@@ -62,6 +63,7 @@ pub fn run() {
             detail::get_issue,
             edit::get_description_source,
             edit::update_description,
+            attachment::upload_attachment,
             comment::add_comment,
             comment::get_comment_source,
             comment::update_comment,

@@ -7,6 +7,7 @@ import { caretPosition } from '@/lib/caret'
 import { useDebounced } from '@/lib/useDebounced'
 import { cn } from '@/lib/utils'
 import { mentionAt, withMentions, type Mention } from './mentions'
+import { usePastedImages } from './usePastedImages'
 
 /** Width of the list of people (`w-72`), to keep it inside the box */
 const LIST_WIDTH = 288
@@ -72,6 +73,7 @@ function CommentBox({
 }) {
   const queryClient = useQueryClient()
   const field = useRef<HTMLTextAreaElement>(null)
+  const images = usePastedImages(issueKey)
   const [text, setText] = useState(initial?.text ?? '')
   const [caret, setCaret] = useState(0)
   // Under the caret, in pixels from the corner of the text box
@@ -99,6 +101,8 @@ function CommentBox({
 
   const post = useMutation<void, ApiError>({
     mutationFn: async () => {
+      // The comment refers to the pictures by name: they have to be on the ticket first
+      await images.attach(text)
       const body = withMentions(text, picked)
       if (commentId === undefined) await api.addComment(issueKey, body)
       else await api.updateComment(issueKey, commentId, body)
@@ -177,6 +181,7 @@ function CommentBox({
             trackCaret(e)
             setActive(0)
           }}
+          onPaste={(e) => images.paste(e, text, setText)}
           onSelect={trackCaret}
           onScroll={trackCaret}
           disabled={post.isPending}
@@ -244,7 +249,7 @@ function CommentBox({
           Cancel
         </Button>
         <span className="ml-auto text-xs text-muted-foreground">
-          Jira wiki markup · Ctrl+Enter to {commentId === undefined ? 'post' : 'save'}
+          Jira wiki markup · paste an image to attach it · Ctrl+Enter to {commentId === undefined ? 'post' : 'save'}
         </span>
       </div>
     </div>
