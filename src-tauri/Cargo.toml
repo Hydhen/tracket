@@ -1,6 +1,6 @@
 [package]
 name = "tracket"
-version = "0.7.4"
+version = "0.7.5"
 description = "Lightweight Jira issue tracker"
 authors = ["Hydhen"]
 license = "MIT"
