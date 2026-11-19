@@ -1,5 +1,11 @@
 # tracket
 
+## 0.7.4
+
+### Patch Changes
+
+- [`f55b99f`](https://github.com/Hydhen/tracket/commit/f55b99ff6615a4842910bacb78e4a2b700639560) Thanks [@Hydhen](https://github.com/Hydhen)! - Ctrl+Enter submits the dialogs that edit or move tickets, and the form that logs time, from whichever field you are typing in.
+
 ## 0.7.3
 
 ### Patch Changes
