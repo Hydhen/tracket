@@ -34,6 +34,12 @@ named `<KEY>`) and open it in:
   with the ticket as its first message. If a space is already open there, it is shown, and Claude Code is
   started in a first tab when it isn't running yet.
 
+When that folder is in the way (a leftover folder git no longer lists as a worktree, or the branch already checked out
+in another worktree), nothing is touched and Tracket asks what to do: use what is there, delete it and create a fresh
+worktree (never over uncommitted changes), or create it in a folder of your own as `<folder>/<repo>/<KEY>`, picked with
+a folder picker. The folder proposed is `~/.herdr/worktrees` for herdr and `~/.tracket/worktrees` otherwise; avoid
+`.vscode` folders, which VS Code keeps its extensions and settings in.
+
 You link each Jira project to a local repository in Settings > Quick start. Git must be installed.
 
 ## Your data

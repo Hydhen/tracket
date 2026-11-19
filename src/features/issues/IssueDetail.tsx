@@ -29,10 +29,19 @@ import {
 import { useChildren } from '@/features/tree/useTree'
 import { workPrompt } from '@/features/workspace/prompt'
 import { LauncherOutline } from '@/features/workspace/LauncherOutline'
+import { WorktreeConflictDialog } from '@/features/workspace/WorktreeConflictDialog'
 import { launcherName, useLauncher, type LauncherId } from '@/features/workspace/launcher'
 import { useProjects } from '@/features/workspace/repos'
 import { fieldsUsed, pickProject, PROJECT_FIELD, type FieldValues } from '@/features/workspace/routing'
-import { api, ApiError, type IssueSummary, type Person, type Worktree } from '@/lib/api'
+import {
+  api,
+  ApiError,
+  type IssueSummary,
+  type Person,
+  type Worktree,
+  type WorktreeConflict,
+  type WorktreeStrategy,
+} from '@/lib/api'
 import { copyText, useCopyPopup } from '@/lib/clipboard'
 import { mediaUrl } from '@/lib/html'
 import { formatDay, isOverdue, timeAgo } from '@/lib/dates'
@@ -147,26 +156,34 @@ export function IssueDetail({
   }
   const app = useLauncher((s) => s.app)
   const appName = launcherName(app)
+  // What stands in the way of the ticket's worktree, until the user has said what to do about it
+  const [worktreeConflict, setWorktreeConflict] = useState<WorktreeConflict | null>(null)
   const startWork = useMutation<
-    { worktree: Worktree; app: LauncherId; promptSent: boolean; alreadyOpen: boolean },
-    ApiError
+    | { kind: 'started'; worktree: Worktree; app: LauncherId; promptSent: boolean; alreadyOpen: boolean }
+    | { kind: 'conflict'; conflict: WorktreeConflict },
+    ApiError,
+    WorktreeStrategy | undefined
   >({
-    mutationFn: async () => {
+    onSuccess: (result) => setWorktreeConflict(result.kind === 'conflict' ? result.conflict : null),
+    mutationFn: async (strategy) => {
       const values = routingFields.length > 0 ? await queryClient.fetchQuery(routingValues(routingFields)) : {}
       const project = projectOf(values)
       if (!project) {
         throw new ApiError('unexpected', 'No project in the settings has the metadata of this ticket. Add one, or change its metadata.')
       }
-      const worktree = await api.createWorktree(project.path, issue.key)
+      const outcome = await api.createWorktree(project.path, issue.key, strategy)
+      if (outcome.status === 'conflict') return { kind: 'conflict', conflict: outcome.conflict }
+      const worktree = outcome.worktree
       if (app === 'herdr') {
         // Claude Code is started there with the prompt, so there is nothing to paste
         const launch = await api.openInHerdr(worktree.folder, issue.key, workPrompt(issue, site))
-        return { worktree, app, promptSent: launch.promptSent, alreadyOpen: launch.alreadyOpen }
+        return { kind: 'started', worktree, app, promptSent: launch.promptSent, alreadyOpen: launch.alreadyOpen }
       }
       await api.openInVscode(worktree.folder)
-      return { worktree, app, promptSent: false, alreadyOpen: false }
+      return { kind: 'started', worktree, app, promptSent: false, alreadyOpen: false }
     },
   })
+  const started = startWork.data?.kind === 'started' ? startWork.data : undefined
   const copyPopup = useCopyPopup()
 
   // The big title scrolled under the top row: the row shows the title itself from then on
@@ -191,7 +208,7 @@ export function IssueDetail({
     const resolved = routingFields.length === 0 || !!routing.data
     if (projects.length === 0 || (resolved && !target)) return linkRepo(issue.projectKey)
     if (app === 'vscode') void copyText(workPrompt(issue, site)).then((ok) => ok && copyPopup.show(anchor))
-    startWork.mutate()
+    startWork.mutate(undefined)
   }
 
   // Which fields to show, and in what order, is chosen in the settings
@@ -348,13 +365,13 @@ export function IssueDetail({
           {startWork.isPending && (
             <p className="mt-2 text-xs text-muted-foreground">Setting up the worktree and opening {appName}…</p>
           )}
-          {startWork.data && (
+          {started && (
             <p className="mt-2 text-xs text-muted-foreground">
-              Worktree {startWork.data.worktree.created ? 'created' : 'already there'} at {startWork.data.worktree.path}.{' '}
-              {startWork.data.app === 'herdr' ? (
-                startWork.data.alreadyOpen ? (
+              Worktree {started.worktree.created ? 'created' : 'already there'} at {started.worktree.path}.{' '}
+              {started.app === 'herdr' ? (
+                started.alreadyOpen ? (
                   'It is already open in herdr: showing it instead of opening another.'
-                ) : startWork.data.promptSent ? (
+                ) : started.promptSent ? (
                   'Claude Code was started in herdr with the prompt.'
                 ) : (
                   <>
@@ -377,8 +394,25 @@ export function IssueDetail({
               )}
             </p>
           )}
-          {startWork.error && <p className="mt-2 text-xs text-destructive">{startWork.error.message}</p>}
+          {startWork.error && !worktreeConflict && (
+            <p className="mt-2 text-xs text-destructive">{startWork.error.message}</p>
+          )}
         </div>
+
+        {worktreeConflict && (
+          <WorktreeConflictDialog
+            issueKey={issue.key}
+            app={app}
+            conflict={worktreeConflict}
+            busy={startWork.isPending}
+            error={startWork.error?.message}
+            onChoose={(strategy) => startWork.mutate(strategy)}
+            onCancel={() => {
+              setWorktreeConflict(null)
+              startWork.reset()
+            }}
+          />
+        )}
 
         {shownFields.length > 0 && (
           <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">

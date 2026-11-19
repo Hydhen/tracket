@@ -1,4 +1,4 @@
-//! Setting up a place to work on a ticket: a git worktree named after it, opened in VS Code.
+//! Setting up a place to work on a ticket: a git worktree named after it, opened in VS Code or herdr.
 //!
 //! Git is run as a child process (never through a shell), with prompts disabled so a missing
 //! credential fails instead of hanging the app.
@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::error::{AppError, Result};
 
@@ -176,68 +176,388 @@ pub async fn check_repo(path: String) -> Result<RepoInfo> {
     .map_err(|e| AppError::new("unexpected", e.to_string()))?
 }
 
-/// Creates the worktree `<repo>/.claude/worktrees/<key>` on a branch named exactly `<key>`,
-/// starting from the default branch of origin. An existing worktree is reused as it is. `repo` is
-/// the project's root folder: the repository itself, or a folder inside it (a monorepo's package).
+/// What to do when the ticket's usual worktree location can't simply be used (see `plan_worktree`).
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum WorktreeStrategy {
+    /// Use what is there: the worktree the branch is checked out in, else the folder as it is
+    Reuse,
+    /// Remove what is there, then create the worktree at its usual place
+    Replace,
+    /// Create it under `base`, as `<base>/<repo>/<key>`
+    Elsewhere { base: String },
+}
+
+#[derive(Serialize)]
+#[serde(tag = "status", rename_all = "camelCase")]
+pub enum WorktreeOutcome {
+    Ready { worktree: Worktree },
+    /// Nothing was changed: the user is asked what to do (see `WorktreeStrategy`)
+    Conflict { conflict: WorktreeConflict },
+}
+
+#[derive(Serialize, Debug, Clone, Copy, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum ConflictKind {
+    /// The usual folder exists, but git doesn't know it as a worktree: what a removal left behind
+    Leftover,
+    /// The branch is already checked out in a worktree somewhere else
+    BranchElsewhere,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorktreeConflict {
+    kind: ConflictKind,
+    /// The usual location, `<repo>/.claude/worktrees/<key>`
+    path: String,
+    /// Where git has the branch checked out, when it does
+    registered_at: Option<String>,
+    /// A few names of what is in the usual folder, when it exists
+    leftover: Vec<String>,
+    /// Why "replace" can't be done, when it can't
+    replace_blocked: Option<String>,
+    /// Why "elsewhere" can't be done, when it can't
+    elsewhere_blocked: Option<String>,
+}
+
+/// Where the user's own folders for worktrees are proposed.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WorktreeBases {
+    herdr: String,
+    tracket: String,
+}
+
+/// A worktree git knows about, out of `git worktree list --porcelain`.
+#[derive(Debug, Clone, PartialEq)]
+struct Registered {
+    path: PathBuf,
+    /// None when detached
+    branch: Option<String>,
+}
+
+fn parse_worktrees(listing: &str) -> Vec<Registered> {
+    let mut found = Vec::new();
+    for block in listing.replace("\r\n", "\n").split("\n\n") {
+        let mut path = None;
+        let mut branch = None;
+        for line in block.lines() {
+            if let Some(p) = line.strip_prefix("worktree ") {
+                path = Some(PathBuf::from(p));
+            } else if let Some(b) = line.strip_prefix("branch refs/heads/") {
+                branch = Some(b.to_string());
+            }
+        }
+        if let Some(path) = path {
+            found.push(Registered { path, branch });
+        }
+    }
+    found
+}
+
+/// Whether two paths are the same place: as the system resolves them when they exist (short
+/// names, links), else as written.
+fn same_place(a: &Path, b: &Path) -> bool {
+    let key = |path: &Path| {
+        let resolved = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+        comparable_folder(&resolved.to_string_lossy())
+    };
+    key(a) == key(b)
+}
+
+#[derive(Debug, PartialEq)]
+enum Plan {
+    /// Git has a worktree at the usual place
+    Ready,
+    /// Nothing is in the way
+    Create,
+    Conflict {
+        kind: ConflictKind,
+        branch_at: Option<PathBuf>,
+        leftover: bool,
+    },
+}
+
+/// What the usual location of the ticket's worktree is up against. A folder only counts as the
+/// worktree when git lists it: one that merely exists is what a removal left behind. A branch
+/// checked out elsewhere can't be checked out again, so that is in the way too.
+fn plan_worktree(registered: &[Registered], usual: &Path, key: &str, usual_exists: bool) -> Plan {
+    if registered.iter().any(|r| same_place(&r.path, usual)) {
+        return Plan::Ready;
+    }
+    let branch_at = registered
+        .iter()
+        .find(|r| r.branch.as_deref() == Some(key))
+        .map(|r| r.path.clone());
+    match (branch_at, usual_exists) {
+        (None, false) => Plan::Create,
+        (None, true) => Plan::Conflict {
+            kind: ConflictKind::Leftover,
+            branch_at: None,
+            leftover: true,
+        },
+        (Some(at), exists) => Plan::Conflict {
+            kind: ConflictKind::BranchElsewhere,
+            branch_at: Some(at),
+            leftover: exists,
+        },
+    }
+}
+
+/// `<base>/<repo>/<key>`
+fn elsewhere_target(base: &str, repo: &str, key: &str) -> std::result::Result<PathBuf, AppError> {
+    let base = Path::new(base.trim());
+    if !base.is_absolute() {
+        return Err(AppError::new(
+            "invalidQuery",
+            "Pick a full folder path for the worktrees",
+        ));
+    }
+    Ok(base.join(repo).join(key))
+}
+
+fn is_empty_dir(path: &Path) -> bool {
+    std::fs::read_dir(path).is_ok_and(|mut entries| entries.next().is_none())
+}
+
+/// The first few names in a folder, sorted.
+fn names_in(path: &Path) -> Vec<String> {
+    let mut names: Vec<String> = std::fs::read_dir(path)
+        .map(|entries| {
+            entries
+                .flatten()
+                .map(|e| e.file_name().to_string_lossy().into_owned())
+                .collect()
+        })
+        .unwrap_or_default();
+    names.sort();
+    names.truncate(6);
+    names
+}
+
+fn has_uncommitted_changes(worktree: &Path) -> bool {
+    git(worktree, &["status", "--porcelain"]).is_ok_and(|status| !status.is_empty())
+}
+
+fn replace_blocked(root: &Path, branch_at: Option<&Path>) -> Option<String> {
+    let at = branch_at?;
+    if same_place(at, root) {
+        Some("The branch is checked out in the repository's own working tree".to_string())
+    } else if at.is_dir() && has_uncommitted_changes(at) {
+        Some(format!(
+            "{} has uncommitted changes: commit or discard them first",
+            at.display()
+        ))
+    } else {
+        None
+    }
+}
+
+fn elsewhere_blocked(key: &str, branch_at: Option<&Path>) -> Option<String> {
+    branch_at.map(|at| {
+        format!(
+            "The branch {key} is checked out in {}: reuse that worktree, or replace it",
+            at.display()
+        )
+    })
+}
+
+/// The worktree on branch `key` at `location`, from what origin has now (offline is fine: the
+/// local copy of the branch is used).
+fn add_worktree(root: &Path, base_ref: &str, key: &str, location: &Path) -> Result<()> {
+    let _ = git(root, &["fetch", "origin"]);
+
+    let location = location.to_string_lossy();
+    let branch_exists = git(
+        root,
+        &[
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            &format!("refs/heads/{key}"),
+        ],
+    )
+    .is_ok();
+    let added = if branch_exists {
+        git(root, &["worktree", "add", &location, key])
+    } else {
+        // Not tracking the default branch: the ticket branch gets pushed under its own name
+        git(
+            root,
+            &[
+                "worktree",
+                "add",
+                "--no-track",
+                "-b",
+                key,
+                &location,
+                base_ref,
+            ],
+        )
+    };
+    added.map(drop).map_err(git_error)
+}
+
+/// Removes a folder that git doesn't know as a worktree. Links inside it are removed, not followed.
+fn remove_leftover(usual: &Path) -> Result<()> {
+    let is_link = std::fs::symlink_metadata(usual).is_ok_and(|m| m.file_type().is_symlink());
+    if is_link {
+        return Err(AppError::new(
+            "git",
+            format!("{} is a link: remove it by hand", usual.display()),
+        ));
+    }
+    std::fs::remove_dir_all(usual).map_err(|e| {
+        AppError::new(
+            "git",
+            format!(
+                "Couldn't remove {} ({e}). Is something using it?",
+                usual.display()
+            ),
+        )
+    })
+}
+
+fn prepare_worktree(
+    inspected: &Inspected,
+    key: &str,
+    strategy: Option<WorktreeStrategy>,
+) -> Result<WorktreeOutcome> {
+    let Inspected {
+        root,
+        base_ref,
+        subpath,
+    } = inspected;
+    let ready = |path: &Path, created| WorktreeOutcome::Ready {
+        worktree: Worktree {
+            path: path.to_string_lossy().into_owned(),
+            folder: folder_in(path, subpath).to_string_lossy().into_owned(),
+            created,
+        },
+    };
+
+    let usual = root.join(".claude").join("worktrees").join(key);
+    let listing = git(root, &["worktree", "list", "--porcelain"]).map_err(git_error)?;
+    let registered = parse_worktrees(&listing);
+
+    let (kind, branch_at, leftover) = match plan_worktree(&registered, &usual, key, usual.exists())
+    {
+        Plan::Ready => return Ok(ready(&usual, false)),
+        Plan::Create => {
+            add_worktree(root, base_ref, key, &usual)?;
+            return Ok(ready(&usual, true));
+        }
+        Plan::Conflict {
+            kind,
+            branch_at,
+            leftover,
+        } => (kind, branch_at, leftover),
+    };
+
+    let blocked_replace = replace_blocked(root, branch_at.as_deref());
+    let blocked_elsewhere = elsewhere_blocked(key, branch_at.as_deref());
+
+    match strategy {
+        None => Ok(WorktreeOutcome::Conflict {
+            conflict: WorktreeConflict {
+                kind,
+                path: usual.to_string_lossy().into_owned(),
+                registered_at: branch_at.map(|p| p.to_string_lossy().into_owned()),
+                leftover: if leftover { names_in(&usual) } else { Vec::new() },
+                replace_blocked: blocked_replace,
+                elsewhere_blocked: blocked_elsewhere,
+            },
+        }),
+        Some(WorktreeStrategy::Reuse) => Ok(ready(branch_at.as_deref().unwrap_or(&usual), false)),
+        Some(WorktreeStrategy::Replace) => {
+            if let Some(why) = blocked_replace {
+                return Err(AppError::new("git", why));
+            }
+            if let Some(at) = branch_at.as_deref().filter(|at| at.is_dir()) {
+                // Checked clean just above, so nothing of the user's is lost
+                git(
+                    root,
+                    &["worktree", "remove", "--force", &at.to_string_lossy()],
+                )
+                .map_err(git_error)?;
+            }
+            if leftover && usual.exists() {
+                remove_leftover(&usual)?;
+            }
+            // Registrations whose folder is gone would still hold the branch
+            git(root, &["worktree", "prune"]).map_err(git_error)?;
+            add_worktree(root, base_ref, key, &usual)?;
+            Ok(ready(&usual, true))
+        }
+        Some(WorktreeStrategy::Elsewhere { base }) => {
+            let repo = root
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+                .unwrap_or_else(|| "repo".to_string());
+            let target = elsewhere_target(&base, &repo, key)?;
+            if registered.iter().any(|r| same_place(&r.path, &target)) {
+                return Ok(ready(&target, false));
+            }
+            if let Some(why) = blocked_elsewhere {
+                return Err(AppError::new("git", why));
+            }
+            if target.exists() && !is_empty_dir(&target) {
+                return Err(AppError::new(
+                    "git",
+                    format!(
+                        "{} already exists and isn't a worktree of this repository",
+                        target.display()
+                    ),
+                ));
+            }
+            add_worktree(root, base_ref, key, &target)?;
+            Ok(ready(&target, true))
+        }
+    }
+}
+
+/// Makes the worktree `<repo>/.claude/worktrees/<key>` on a branch named exactly `<key>`,
+/// starting from the default branch of origin. A worktree git already has there is reused as it
+/// is. When something is in the way (a leftover folder, the branch checked out elsewhere) nothing
+/// is touched and the conflict is returned, unless a `strategy` says what to do about it. `repo`
+/// is the project's root folder: the repository itself, or a folder inside it (a monorepo's package).
 #[tauri::command]
-pub async fn create_worktree(repo: String, key: String) -> Result<Worktree> {
+pub async fn create_worktree(
+    repo: String,
+    key: String,
+    strategy: Option<WorktreeStrategy>,
+) -> Result<WorktreeOutcome> {
     if !valid_issue_key(&key) {
         return Err(AppError::new("invalidQuery", "Invalid issue key"));
     }
 
     tauri::async_runtime::spawn_blocking(move || {
-        let Inspected {
-            root,
-            base_ref,
-            subpath,
-        } = inspect(&repo)?;
-        let path = root.join(".claude").join("worktrees").join(&key);
-        let described = |created| Worktree {
-            path: path.to_string_lossy().into_owned(),
-            folder: folder_in(&path, &subpath).to_string_lossy().into_owned(),
-            created,
-        };
-        if path.is_dir() {
-            return Ok(described(false));
-        }
-
-        // Start from what origin has now. Offline is fine: the local copy of the branch is used
-        let _ = git(&root, &["fetch", "origin"]);
-
-        let location = path.to_string_lossy();
-        let branch_exists = git(
-            &root,
-            &[
-                "rev-parse",
-                "--verify",
-                "--quiet",
-                &format!("refs/heads/{key}"),
-            ],
-        )
-        .is_ok();
-        let added = if branch_exists {
-            git(&root, &["worktree", "add", &location, &key])
-        } else {
-            // Not tracking the default branch: the ticket branch gets pushed under its own name
-            git(
-                &root,
-                &[
-                    "worktree",
-                    "add",
-                    "--no-track",
-                    "-b",
-                    &key,
-                    &location,
-                    &base_ref,
-                ],
-            )
-        };
-        added.map_err(git_error)?;
-
-        Ok(described(true))
+        let inspected = inspect(&repo)?;
+        prepare_worktree(&inspected, &key, strategy)
     })
     .await
     .map_err(|e| AppError::new("unexpected", e.to_string()))?
+}
+
+/// Where "create in your user folder" proposes to put worktrees: herdr's own folder for them
+/// (where it puts its own), and one of Tracket's for the other apps.
+#[tauri::command]
+pub fn worktree_bases() -> Result<WorktreeBases> {
+    let home = std::env::var_os("USERPROFILE")
+        .or_else(|| std::env::var_os("HOME"))
+        .map(PathBuf::from)
+        .ok_or_else(|| AppError::new("unexpected", "Couldn't find your user folder"))?;
+    let under = |app: &str| {
+        home.join(app)
+            .join("worktrees")
+            .to_string_lossy()
+            .into_owned()
+    };
+    Ok(WorktreeBases {
+        herdr: under(".herdr"),
+        tracket: under(".tracket"),
+    })
 }
 
 /// Opens `path` in VS Code (a new window, or the one that already has it).
@@ -873,5 +1193,285 @@ mod tests {
         assert!(!valid_issue_key("ES-"));
         assert!(!valid_issue_key("ABC-1/../x"));
         assert!(!valid_issue_key("ABC-1 2"));
+    }
+
+    mod worktrees {
+        use std::path::{Path, PathBuf};
+        use std::process::Command;
+
+        use super::super::{
+            ConflictKind, Plan, Registered, WorktreeOutcome, WorktreeStrategy, elsewhere_target,
+            inspect, parse_worktrees, plan_worktree, prepare_worktree,
+        };
+
+        #[test]
+        fn speaks_the_json_the_screen_expects() {
+            use super::super::{WorktreeConflict, WorktreeOutcome};
+
+            let reuse: WorktreeStrategy = serde_json::from_str(r#"{"kind":"reuse"}"#).unwrap();
+            let replace: WorktreeStrategy = serde_json::from_str(r#"{"kind":"replace"}"#).unwrap();
+            let there: WorktreeStrategy =
+                serde_json::from_str(r#"{"kind":"elsewhere","base":"C:/w"}"#).unwrap();
+            assert_eq!(reuse, WorktreeStrategy::Reuse);
+            assert_eq!(replace, WorktreeStrategy::Replace);
+            assert_eq!(there, WorktreeStrategy::Elsewhere { base: "C:/w".into() });
+
+            let asked = serde_json::to_value(WorktreeOutcome::Conflict {
+                conflict: WorktreeConflict {
+                    kind: ConflictKind::BranchElsewhere,
+                    path: "p".into(),
+                    registered_at: Some("q".into()),
+                    leftover: vec!["node_modules".into()],
+                    replace_blocked: None,
+                    elsewhere_blocked: Some("why".into()),
+                },
+            })
+            .unwrap();
+            assert_eq!(
+                asked,
+                serde_json::json!({
+                    "status": "conflict",
+                    "conflict": {
+                        "kind": "branchElsewhere", "path": "p", "registeredAt": "q",
+                        "leftover": ["node_modules"], "replaceBlocked": null, "elsewhereBlocked": "why"
+                    }
+                })
+            );
+        }
+
+        fn registered(path: &str, branch: Option<&str>) -> Registered {
+            Registered {
+                path: PathBuf::from(path),
+                branch: branch.map(str::to_string),
+            }
+        }
+
+        #[test]
+        fn reads_the_worktrees_git_lists() {
+            let listing = "worktree C:/dev/repo\nHEAD abc\nbranch refs/heads/main\n\n\
+                           worktree C:/dev/repo/.claude/worktrees/ABC-1\nHEAD def\nbranch refs/heads/ABC-1\n\n\
+                           worktree C:/dev/detached\nHEAD 123\ndetached\n";
+            assert_eq!(
+                parse_worktrees(listing),
+                vec![
+                    registered("C:/dev/repo", Some("main")),
+                    registered("C:/dev/repo/.claude/worktrees/ABC-1", Some("ABC-1")),
+                    registered("C:/dev/detached", None),
+                ]
+            );
+            assert_eq!(parse_worktrees(""), vec![]);
+            // Windows line endings, as git may print them
+            assert_eq!(
+                parse_worktrees("worktree C:/a\r\nbranch refs/heads/x\r\n\r\nworktree C:/b\r\n").len(),
+                2
+            );
+        }
+
+        #[test]
+        fn a_folder_only_counts_as_the_worktree_when_git_lists_it() {
+            let usual = Path::new(r"C:\dev\repo\.claude\worktrees\ABC-1");
+            let main = registered("C:/dev/repo", Some("main"));
+
+            // Listed (whatever the spelling): used as it is
+            let listed = registered("C:/dev/repo/.claude/worktrees/ABC-1", Some("ABC-1"));
+            assert_eq!(plan_worktree(&[main.clone(), listed], usual, "ABC-1", true), Plan::Ready);
+
+            // Nothing there, nothing in the way
+            assert_eq!(plan_worktree(std::slice::from_ref(&main), usual, "ABC-1", false), Plan::Create);
+
+            // A folder git doesn't know: what a removal left behind
+            assert_eq!(
+                plan_worktree(std::slice::from_ref(&main), usual, "ABC-1", true),
+                Plan::Conflict {
+                    kind: ConflictKind::Leftover,
+                    branch_at: None,
+                    leftover: true
+                }
+            );
+        }
+
+        #[test]
+        fn a_branch_checked_out_elsewhere_is_in_the_way() {
+            let usual = Path::new(r"C:\dev\repo\.claude\worktrees\ABC-1");
+            let elsewhere = registered("C:/Users/jane/.herdr/worktrees/repo/ABC-1", Some("ABC-1"));
+
+            for exists in [false, true] {
+                assert_eq!(
+                    plan_worktree(std::slice::from_ref(&elsewhere), usual, "ABC-1", exists),
+                    Plan::Conflict {
+                        kind: ConflictKind::BranchElsewhere,
+                        branch_at: Some(elsewhere.path.clone()),
+                        leftover: exists
+                    }
+                );
+            }
+            // Another ticket's branch is no concern
+            assert_eq!(plan_worktree(&[elsewhere], usual, "ABC-2", false), Plan::Create);
+        }
+
+        #[test]
+        fn worktrees_in_the_user_folder_go_under_the_repo_name() {
+            let base = if cfg!(windows) { r"C:\Users\jane\.tracket\worktrees" } else { "/home/jane/.tracket/worktrees" };
+            let target = elsewhere_target(base, "repo", "ABC-1").unwrap();
+            assert_eq!(target, Path::new(base).join("repo").join("ABC-1"));
+            // A relative or empty folder would put it who knows where
+            assert!(elsewhere_target("worktrees", "repo", "ABC-1").is_err());
+            assert!(elsewhere_target("  ", "repo", "ABC-1").is_err());
+        }
+
+        fn git(dir: &Path, args: &[&str]) {
+            let output = Command::new("git")
+                .arg("-C")
+                .arg(dir)
+                .args(["-c", "user.name=t", "-c", "user.email=t@t.test"])
+                .args(args)
+                .output()
+                .expect("git runs");
+            assert!(
+                output.status.success(),
+                "git {args:?}: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+
+        fn ready(outcome: WorktreeOutcome) -> (String, bool) {
+            match outcome {
+                WorktreeOutcome::Ready { worktree } => (worktree.path, worktree.created),
+                WorktreeOutcome::Conflict { .. } => panic!("expected a worktree, got a conflict"),
+            }
+        }
+
+        fn conflict(outcome: WorktreeOutcome) -> super::super::WorktreeConflict {
+            match outcome {
+                WorktreeOutcome::Conflict { conflict } => conflict,
+                WorktreeOutcome::Ready { .. } => panic!("expected a conflict, got a worktree"),
+            }
+        }
+
+        /// A repository with an origin, in a folder of its own, and the folder to remove after.
+        fn repository(name: &str) -> (PathBuf, PathBuf) {
+            let home = std::env::temp_dir().join(format!("tracket-wt-{}-{name}", std::process::id()));
+            let _ = std::fs::remove_dir_all(&home);
+            std::fs::create_dir_all(&home).unwrap();
+            git(&home, &["init", "--bare", "-b", "main", "origin.git"]);
+            git(&home, &["clone", "origin.git", "repo"]);
+            let repo = home.join("repo");
+            std::fs::write(repo.join("README.md"), "hello").unwrap();
+            git(&repo, &["add", "."]);
+            git(&repo, &["commit", "-m", "first"]);
+            git(&repo, &["push", "origin", "HEAD:main"]);
+            (home, repo)
+        }
+
+        #[test]
+        fn a_leftover_folder_is_asked_about_then_replaced() {
+            let (home, repo) = repository("leftover");
+            let inspected = inspect(&repo.to_string_lossy()).unwrap();
+            let usual = inspected.root.join(".claude").join("worktrees").join("ABC-2");
+
+            // A fresh ticket just gets its worktree, and again: it is the one git lists
+            let (path, created) = ready(prepare_worktree(&inspected, "ABC-1", None).unwrap());
+            assert!(created && Path::new(&path).join(".git").exists());
+            let (_, created) = ready(prepare_worktree(&inspected, "ABC-1", None).unwrap());
+            assert!(!created, "reused as it is");
+
+            // What a removal left behind: a folder git doesn't know
+            std::fs::create_dir_all(usual.join("node_modules")).unwrap();
+            std::fs::write(usual.join("node_modules").join("x.js"), "x").unwrap();
+
+            let asked = conflict(prepare_worktree(&inspected, "ABC-2", None).unwrap());
+            assert_eq!(asked.kind, ConflictKind::Leftover);
+            assert_eq!(asked.leftover, vec!["node_modules"]);
+            assert!(asked.replace_blocked.is_none() && asked.elsewhere_blocked.is_none());
+            assert!(usual.join("node_modules").exists(), "asking changes nothing");
+
+            let (path, created) =
+                ready(prepare_worktree(&inspected, "ABC-2", Some(WorktreeStrategy::Replace)).unwrap());
+            assert!(created);
+            assert!(Path::new(&path).join(".git").exists(), "a real worktree now");
+            assert!(!usual.join("node_modules").exists(), "the leftover is gone");
+
+            let _ = std::fs::remove_dir_all(&home);
+        }
+
+        #[test]
+        fn a_leftover_folder_can_be_reused_or_worked_around() {
+            let (home, repo) = repository("around");
+            let inspected = inspect(&repo.to_string_lossy()).unwrap();
+            let usual = inspected.root.join(".claude").join("worktrees").join("ABC-4");
+            std::fs::create_dir_all(&usual).unwrap();
+            std::fs::write(usual.join("keep.txt"), "mine").unwrap();
+
+            let (path, created) =
+                ready(prepare_worktree(&inspected, "ABC-4", Some(WorktreeStrategy::Reuse)).unwrap());
+            assert!(!created);
+            assert!(Path::new(&path).ends_with("ABC-4"));
+
+            let base = home.join("user-folder");
+            let strategy = WorktreeStrategy::Elsewhere {
+                base: base.to_string_lossy().into_owned(),
+            };
+            let (path, created) = ready(prepare_worktree(&inspected, "ABC-4", Some(strategy)).unwrap());
+            assert!(created);
+            assert!(Path::new(&path).starts_with(&base) && Path::new(&path).join(".git").exists());
+            assert!(usual.join("keep.txt").exists(), "the leftover isn't touched");
+
+            // A folder that isn't a place to put worktrees is refused before anything is made
+            let stray = inspected.root.join(".claude").join("worktrees").join("ABC-5");
+            std::fs::create_dir_all(&stray).unwrap();
+            let relative = WorktreeStrategy::Elsewhere { base: "worktrees".into() };
+            assert!(prepare_worktree(&inspected, "ABC-5", Some(relative)).is_err());
+            assert!(!Path::new("worktrees").exists(), "nothing was made");
+
+            let _ = std::fs::remove_dir_all(&home);
+        }
+
+        #[test]
+        fn a_branch_checked_out_elsewhere_is_reused_or_replaced_when_clean() {
+            let (home, repo) = repository("elsewhere");
+            let inspected = inspect(&repo.to_string_lossy()).unwrap();
+            let base = home.join("user-folder");
+            let user_folder = WorktreeStrategy::Elsewhere {
+                base: base.to_string_lossy().into_owned(),
+            };
+
+            // The branch is checked out in the user folder, and the usual folder is a leftover
+            let usual = inspected.root.join(".claude").join("worktrees").join("ABC-3");
+            std::fs::create_dir_all(&usual).unwrap();
+            let (there, _) = ready(prepare_worktree(&inspected, "ABC-3", Some(user_folder.clone())).unwrap());
+
+            let asked = conflict(prepare_worktree(&inspected, "ABC-3", None).unwrap());
+            assert_eq!(asked.kind, ConflictKind::BranchElsewhere);
+            assert!(asked.registered_at.as_deref().is_some_and(|at| at.contains("ABC-3")));
+            assert!(asked.elsewhere_blocked.is_some(), "it can't be checked out twice");
+            assert!(asked.replace_blocked.is_none(), "it is clean");
+
+            // Reusing means using the worktree git has, not the leftover
+            let (path, created) =
+                ready(prepare_worktree(&inspected, "ABC-3", Some(WorktreeStrategy::Reuse)).unwrap());
+            // git spells the folder its own way (long names, forward slashes): the folder's name is what is compared
+            assert!(!created && path.contains("user-folder") && path.ends_with("ABC-3"));
+
+            // Asking for the same user folder again is that same worktree
+            let (again, created) = ready(prepare_worktree(&inspected, "ABC-3", Some(user_folder)).unwrap());
+            assert!(!created && Path::new(&again).ends_with("ABC-3"));
+
+            // Uncommitted work is never replaced
+            std::fs::write(Path::new(&there).join("work.txt"), "unsaved").unwrap();
+            let asked = conflict(prepare_worktree(&inspected, "ABC-3", None).unwrap());
+            assert!(asked.replace_blocked.is_some_and(|why| why.contains("uncommitted")));
+            assert!(prepare_worktree(&inspected, "ABC-3", Some(WorktreeStrategy::Replace)).is_err());
+            assert!(Path::new(&there).join("work.txt").exists());
+
+            // Once clean, it moves to the usual place
+            std::fs::remove_file(Path::new(&there).join("work.txt")).unwrap();
+            let (path, created) =
+                ready(prepare_worktree(&inspected, "ABC-3", Some(WorktreeStrategy::Replace)).unwrap());
+            assert!(created && Path::new(&path).join(".git").exists());
+            assert!(Path::new(&path).ends_with("ABC-3") && Path::new(&path).starts_with(&inspected.root));
+            assert!(!Path::new(&there).exists(), "the old worktree is gone");
+
+            let _ = std::fs::remove_dir_all(&home);
+        }
     }
 }

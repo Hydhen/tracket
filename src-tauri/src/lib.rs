@@ -80,6 +80,7 @@ pub fn run() {
             worklog::add_worklog,
             workspace::check_repo,
             workspace::create_worktree,
+            workspace::worktree_bases,
             workspace::open_in_vscode,
             workspace::open_in_herdr,
             storage::storage_load,

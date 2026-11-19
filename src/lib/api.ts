@@ -70,6 +70,31 @@ export interface Worktree {
   created: boolean
 }
 
+/** What to do when the ticket's usual worktree folder can't just be used */
+export type WorktreeStrategy =
+  | { kind: 'reuse' }
+  | { kind: 'replace' }
+  /** Create it as `<base>/<repo>/<key>` */
+  | { kind: 'elsewhere'; base: string }
+
+export interface WorktreeConflict {
+  /** `leftover`: a folder git doesn't know as a worktree. `branchElsewhere`: the branch is checked out in another worktree */
+  kind: 'leftover' | 'branchElsewhere'
+  /** The usual location, `<repo>/.claude/worktrees/<key>` */
+  path: string
+  /** Where git has the branch checked out, when it does */
+  registeredAt: string | null
+  /** A few names of what is in the usual folder */
+  leftover: string[]
+  /** Why each way out can't be taken, when it can't */
+  replaceBlocked: string | null
+  elsewhereBlocked: string | null
+}
+
+export type WorktreeOutcome =
+  | { status: 'ready'; worktree: Worktree }
+  | { status: 'conflict'; conflict: WorktreeConflict }
+
 /** A value a field can take, e.g. one of the priorities of a project */
 export interface Choice {
   id: string
@@ -300,8 +325,14 @@ export const api = {
     call<User[]>('search_mentionable_users', { key, query }),
   /** Checks a folder is a git repository; gives its main working tree and the branch new work starts from */
   checkRepo: (path: string) => call<RepoInfo>('check_repo', { path }),
-  /** `<repo>/.claude/worktrees/<key>` on a branch named `<key>`, reused when it exists */
-  createWorktree: (repo: string, key: string) => call<Worktree>('create_worktree', { repo, key }),
+  /**
+   * `<repo>/.claude/worktrees/<key>` on a branch named `<key>`, reused when git lists it. When something is in the way
+   * nothing is touched and the conflict comes back, unless `strategy` says what to do about it.
+   */
+  createWorktree: (repo: string, key: string, strategy?: WorktreeStrategy) =>
+    call<WorktreeOutcome>('create_worktree', { repo, key, strategy: strategy ?? null }),
+  /** The folders proposed for worktrees kept in the user's folder: herdr's own, and Tracket's */
+  worktreeBases: () => call<{ herdr: string; tracket: string }>('worktree_bases'),
   openInVscode: (path: string) => call<void>('open_in_vscode', { path }),
   /** A herdr space named `name` in `folder`, running Claude Code with `prompt` as its first message */
   openInHerdr: (folder: string, name: string, prompt: string) =>
