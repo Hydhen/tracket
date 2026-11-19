@@ -1,5 +1,11 @@
 # tracket
 
+## 0.7.5
+
+### Patch Changes
+
+- [`d3e9aa5`](https://github.com/Hydhen/tracket/commit/d3e9aa58654619863c6b47ee1014ca530e3749ee) Thanks [@Hydhen](https://github.com/Hydhen)! - When a ticket's worktree folder is in the way (a leftover folder that git no longer knows, or the branch already checked out in another worktree), quick start now asks what to do instead of opening the wrong folder: use what is there, delete it and create a fresh worktree, or create it in a folder of your own picked with a folder picker.
+
 ## 0.7.4
 
 ### Patch Changes
