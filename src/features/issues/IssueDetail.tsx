@@ -201,6 +201,86 @@ export function IssueDetail({
     return () => observer.disconnect()
   }, [])
 
+  // The big title goes up into the top row as the ticket scrolls: the row's copy of it starts on the big one
+  // (same place, same size, same line breaks) and flies to its slot, small, cut down to its first line. It is an
+  // animation that the scroll starts, not one that follows the scroll.
+  const slotRef = useRef<HTMLDivElement>(null)
+  const flyRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const title = titleRef.current
+    const slot = slotRef.current
+    const fly = flyRef.current
+    const pane = title?.closest('main, aside')
+    if (!title || !slot || !fly || !pane) return
+
+    const BIG_OVER_SMALL = 20 / 14 // text-xl over text-sm
+    const ROW = 45 // The height of the top row
+    const SMALL_LINE = 20 // One line of text-sm
+    const reset = () => {
+      title.style.opacity = ''
+      slot.style.overflow = ''
+      fly.dataset.fly = 'false'
+      for (const prop of ['transform', 'transform-origin', 'translate', 'opacity', 'width', 'height', 'display']) {
+        fly.style.removeProperty(prop)
+      }
+    }
+
+    // The whole way, from the big title to the row or back, takes this long
+    const FULL_TRIP_MS = 150
+    let frame = 0
+    let shown = -1 // How far the copy is on its way, 0 to 1; -1 until it is first placed
+    let last = 0
+    const update = (now: number) => {
+      frame = 0
+      const big = title.getBoundingClientRect()
+      const small = slot.getBoundingClientRect()
+      const rowBottom = pane.getBoundingClientRect().top + ROW
+      // Where the copy should be, one or the other: in the ticket, on the big title (0), or in the row (1). The
+      // scroll only picks which, from the moment the big title is about to go under the row; the copy then gets
+      // there in its own time, so it is never left half way
+      const wanted = big.top < rowBottom + 16 ? 1 : 0
+      // A frame comes long after the last one when the scroll had stopped: count that as a short one
+      const step = shown < 0 ? 1 : Math.min(now - last, 50) / FULL_TRIP_MS
+      shown = shown < 0 ? wanted : shown + Math.min(step, Math.max(-step, wanted - shown))
+      last = now
+      if (shown !== wanted) schedule()
+
+      const progress = shown
+      const scale = 1 + (1 - progress) * (BIG_OVER_SMALL - 1)
+
+      fly.dataset.fly = 'true'
+      fly.style.translate = 'none'
+      fly.style.transformOrigin = '0 0'
+      // Never higher than its slot: the big title has left the row by the time the copy is still on its way
+      fly.style.transform = `translate(${(1 - progress) * (big.left - small.left)}px, ${(1 - progress) * Math.max(0, big.top - small.top)}px) scale(${scale})`
+      // Once scaled, as wide and as high as the big title: it breaks its lines in the same places. In its slot it
+      // is left to its classes: one line, ending with an ellipsis
+      const arrived = progress >= 1
+      fly.style.width = arrived ? '' : `${small.width + (1 - progress) * (big.width / BIG_OVER_SMALL - small.width)}px`
+      fly.style.height = arrived
+        ? ''
+        : `${SMALL_LINE + (1 - progress) * (big.height / BIG_OVER_SMALL - SMALL_LINE)}px`
+      fly.style.display = arrived ? '' : 'block'
+      fly.style.opacity = progress > 0 ? '1' : '0'
+      // The big one stays under the copy while it is on the move
+      title.style.opacity = progress > 0 ? '0' : ''
+      slot.style.overflow = progress < 1 ? 'visible' : ''
+    }
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update)
+    }
+
+    update(performance.now())
+    pane.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    return () => {
+      pane.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+      if (frame) cancelAnimationFrame(frame)
+      reset()
+    }
+  }, [issue.summary])
+
   // For VS Code the prompt is copied first, on the click itself: the clipboard is only reachable
   // while this window has the focus, and the app takes it as soon as it opens
   const onStartWork = (anchor: Element) => {
@@ -289,11 +369,19 @@ export function IssueDetail({
                 />
               </>
             )}
-            {titleScrolled && (
-              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground" title={issue.summary}>
+            {/* The big title goes up into the row: see the effect above */}
+            <div ref={slotRef} className="relative h-5 min-w-0 flex-1 overflow-hidden" aria-hidden={!titleScrolled}>
+              <div
+                ref={flyRef}
+                className={cn(
+                  'absolute left-0 top-0 line-clamp-1 w-full overflow-hidden text-sm font-semibold text-foreground transition-[transform,opacity] duration-200 ease-out data-[fly=true]:transition-none motion-reduce:transition-none',
+                  titleScrolled ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0',
+                )}
+                title={issue.summary}
+              >
                 {issue.summary}
-              </span>
-            )}
+              </div>
+            </div>
             <div className="ml-auto flex shrink-0 gap-1">
               <Button
                 variant="outline"

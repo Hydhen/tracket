@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import { Pause, Play, Timer as TimerIcon, Trash2 } from 'lucide-react'
-import { useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,21 @@ export function TimeTracker({ issueKey }: { issueKey: string }) {
   const [comment, setComment] = useState('')
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [logged, setLogged] = useState<string | null>(null)
+
+  // Stuck at the top: the pane has scrolled the bar up to the ticket's header. Told by a marker just above it
+  const marker = useRef<HTMLDivElement>(null)
+  const [stuck, setStuck] = useState(false)
+  useEffect(() => {
+    const el = marker.current
+    if (!el) return
+    // What scrolls is the pane around the ticket; the header covers its first 45px
+    const observer = new IntersectionObserver(
+      ([entry]) => setStuck(!entry.isIntersecting && entry.boundingClientRect.top < (entry.rootBounds?.top ?? 0)),
+      { root: el.closest('main, aside'), rootMargin: '-45px 0px 0px 0px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   const seconds = parseDuration(duration)
 
@@ -70,15 +85,26 @@ export function TimeTracker({ issueKey }: { issueKey: string }) {
     <>
       {/*
         Stays at the top while the ticket scrolls, right under the sticky header of the ticket (45px high, its
-        border included: the bars share one line). Like the header, it is as wide as the pane (-mx-6). The opaque
-        row keeps the red tint of a running timer from showing what scrolls underneath.
+        border included). It is as high as the row of the views on the left (28px of controls, 6px of padding
+        around them, 1px of border: 41px), so that its bottom edge lines up with theirs. In the flow of the
+        ticket it is a narrow card with a rounded border; once stuck it grows to the width of the pane (-mx-6) like
+        the header, and only its bottom border is left. The opaque row around it keeps the red tint of a running
+        timer from showing what scrolls underneath.
       */}
-      <div className="sticky top-[44px] z-10 -mx-6 mt-4 bg-background">
+      <div ref={marker} aria-hidden className="mt-4 h-0" />
+      <div className="sticky top-[45px] z-10 -mx-6 bg-background px-6">
         <section
           aria-label="Time tracking"
-          className={cn('border-y px-6 py-2 transition-colors', running && 'border-red-500/60 bg-red-500/10')}
+          className={cn(
+            // The border is always there, 1px on each side: stuck, only its bottom shows (the rest is transparent)
+            'border bg-background py-[5.5px] transition-[margin,padding,border-radius,border-color,background-color,box-shadow] duration-[60ms] motion-reduce:transition-none',
+            stuck
+              ? '-mx-6 rounded-none border-transparent border-b-border px-6 shadow-sm'
+              : 'rounded-md border-border px-3',
+            running && (stuck ? 'border-b-red-500/60 bg-red-500/10' : 'border-red-500/60 bg-red-500/10'),
+          )}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex h-7 items-center gap-2">
             <TimerIcon className={cn('size-4 text-muted-foreground', running && 'text-red-600 dark:text-red-400')} />
             <span
               className={cn(
