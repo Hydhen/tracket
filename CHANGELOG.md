@@ -1,5 +1,11 @@
 # tracket
 
+## 0.7.6
+
+### Patch Changes
+
+- [`3e14775`](https://github.com/Hydhen/tracket/commit/3e1477530bb00446c572abc70923124977dafe9a) Thanks [@Hydhen](https://github.com/Hydhen)! - The timer bar of a ticket stays at the top while you scroll, under the ticket's header and as wide as it.
+
 ## 0.7.5
 
 ### Patch Changes
