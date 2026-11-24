@@ -67,113 +67,120 @@ export function TimeTracker({ issueKey }: { issueKey: string }) {
   }
 
   return (
-    <section
-      aria-label="Time tracking"
-      className={cn(
-        'mt-6 rounded-md border px-3 py-2 transition-colors',
-        running && 'border-red-500/60 bg-red-500/10',
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <TimerIcon className={cn('size-4 text-muted-foreground', running && 'text-red-600 dark:text-red-400')} />
-        <span
-          className={cn(
-            'min-w-[4.5rem] text-sm font-medium tabular-nums',
-            running && 'text-red-600 dark:text-red-400',
-          )}
-          // Not announced every second
-          aria-live="off"
+    <>
+      {/*
+        Stays at the top while the ticket scrolls, right under the sticky header of the ticket (45px high, its
+        border included: the bars share one line). Like the header, it is as wide as the pane (-mx-6). The opaque
+        row keeps the red tint of a running timer from showing what scrolls underneath.
+      */}
+      <div className="sticky top-[44px] z-10 -mx-6 mt-4 bg-background">
+        <section
+          aria-label="Time tracking"
+          className={cn('border-y px-6 py-2 transition-colors', running && 'border-red-500/60 bg-red-500/10')}
         >
-          {formatClock(elapsed)}
-        </span>
-        {running && <RecordingDot label="Timer running" />}
-
-        {running ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-red-500/50 text-red-600 hover:bg-red-500/15 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400"
-            onClick={() => pause(issueKey)}
-          >
-            <Pause className="size-3.5" />
-            Pause
-          </Button>
-        ) : (
-          <Button variant="outline" size="sm" onClick={() => start(issueKey)} disabled={logging}>
-            <Play className="size-3.5" />
-            {elapsed > 0 ? 'Resume' : 'Start'}
-          </Button>
-        )}
-
-        <div className="ml-auto flex items-center gap-1">
-          {logged && !logging && (
-            <span role="status" className="mr-1 text-xs text-muted-foreground">
-              Logged {logged} in Jira
-            </span>
-          )}
-          {!logging && (
-            <Button variant="ghost" size="sm" onClick={openForm}>
-              Log time
-            </Button>
-          )}
-          {timer && !logging && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7"
-              title="Discard the timer"
-              aria-label="Discard the timer"
-              onClick={() => (elapsed >= DISCARD_CONFIRM_MS ? setConfirmDiscard(true) : discard(issueKey))}
+          <div className="flex items-center gap-2">
+            <TimerIcon className={cn('size-4 text-muted-foreground', running && 'text-red-600 dark:text-red-400')} />
+            <span
+              className={cn(
+                'min-w-[4.5rem] text-sm font-medium tabular-nums',
+                running && 'text-red-600 dark:text-red-400',
+              )}
+              // Not announced every second
+              aria-live="off"
             >
-              <Trash2 className="size-3.5" />
-            </Button>
+              {formatClock(elapsed)}
+            </span>
+            {running && <RecordingDot label="Timer running" />}
+
+            {running ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-red-500/50 text-red-600 hover:bg-red-500/15 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400"
+                onClick={() => pause(issueKey)}
+              >
+                <Pause className="size-3.5" />
+                Pause
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => start(issueKey)} disabled={logging}>
+                <Play className="size-3.5" />
+                {elapsed > 0 ? 'Resume' : 'Start'}
+              </Button>
+            )}
+
+            <div className="ml-auto flex items-center gap-1">
+              {logged && !logging && (
+                <span role="status" className="mr-1 text-xs text-muted-foreground">
+                  Logged {logged} in Jira
+                </span>
+              )}
+              {!logging && (
+                <Button variant="ghost" size="sm" onClick={openForm}>
+                  Log time
+                </Button>
+              )}
+              {timer && !logging && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  title="Discard the timer"
+                  aria-label="Discard the timer"
+                  onClick={() => (elapsed >= DISCARD_CONFIRM_MS ? setConfirmDiscard(true) : discard(issueKey))}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {logging && (
+            <form onSubmit={submit} onKeyDown={onFormKeyDown} className="mt-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <label htmlFor={`worklog-duration-${issueKey}`} className="text-xs text-muted-foreground">
+                  Time spent
+                </label>
+                <input
+                  id={`worklog-duration-${issueKey}`}
+                  autoFocus
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  disabled={log.isPending}
+                  placeholder="1h 30m, 2d"
+                  aria-invalid={durationInvalid}
+                  className={cn(
+                    'w-36 rounded-md border bg-background px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+                    durationInvalid && 'border-destructive',
+                  )}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {durationInvalid ? 'Try 1h 30m, 45m, 2d or 1:30 (1 minute at least)' : 'ending now'}
+                </span>
+              </div>
+              <input
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                disabled={log.isPending}
+                aria-label="Work description"
+                placeholder="What did you work on? (optional)"
+                className="w-full rounded-md border bg-background px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              />
+              {log.error && <p className="text-sm text-destructive">{log.error.message}</p>}
+              <div className="flex items-center gap-2">
+                <Button type="submit" size="sm" disabled={seconds === null || seconds < 60 || log.isPending}>
+                  {log.isPending ? <Spinner /> : 'Log in Jira'}
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setLogging(false)} disabled={log.isPending}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
           )}
-        </div>
+        </section>
       </div>
 
-      {logging && (
-        <form onSubmit={submit} onKeyDown={onFormKeyDown} className="mt-3 space-y-2">
-          <div className="flex items-center gap-2">
-            <label htmlFor={`worklog-duration-${issueKey}`} className="text-xs text-muted-foreground">
-              Time spent
-            </label>
-            <input
-              id={`worklog-duration-${issueKey}`}
-              autoFocus
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              disabled={log.isPending}
-              placeholder="1h 30m, 2d"
-              aria-invalid={durationInvalid}
-              className={cn(
-                'w-36 rounded-md border bg-background px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
-                durationInvalid && 'border-destructive',
-              )}
-            />
-            <span className="text-xs text-muted-foreground">
-              {durationInvalid ? 'Try 1h 30m, 45m, 2d or 1:30 (1 minute at least)' : 'ending now'}
-            </span>
-          </div>
-          <input
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            disabled={log.isPending}
-            aria-label="Work description"
-            placeholder="What did you work on? (optional)"
-            className="w-full rounded-md border bg-background px-2 py-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-          />
-          {log.error && <p className="text-sm text-destructive">{log.error.message}</p>}
-          <div className="flex items-center gap-2">
-            <Button type="submit" size="sm" disabled={seconds === null || seconds < 60 || log.isPending}>
-              {log.isPending ? <Spinner /> : 'Log in Jira'}
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setLogging(false)} disabled={log.isPending}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      )}
-
+      {/* Outside the sticky row: its stacking context would keep the dialog under the rest of the app */}
       {confirmDiscard && (
         <ConfirmDialog
           title="Discard the timer?"
@@ -189,7 +196,6 @@ export function TimeTracker({ issueKey }: { issueKey: string }) {
           </p>
         </ConfirmDialog>
       )}
-    </section>
+    </>
   )
 }
-
