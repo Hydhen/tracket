@@ -150,6 +150,22 @@ function embedsToLinks(html: string, attachments: AttachmentRef[]): string {
   return doc.body.innerHTML
 }
 
+/** Pictures of this size or smaller, as the page declares them, are icons: they sit in the text */
+const ICON_MAX_SIZE = 32
+/** What Jira serves its small pictures from: the icons of the site, and the avatars (of a type of ticket, a person…) */
+const ICON_PATH = /^\/(images\/icons\/|rest\/api\/\d+\/universal_avatar\/|secure\/(viewavatar|projectavatar|useravatar))/i
+
+/**
+ * Whether a picture is an icon or an emoji, which stays in the line of text, rather than an image of the page, which
+ * is a block of its own (with a loader, and the viewer to look at it full size). The ticket mentioned in a comment
+ * comes with the icon of its type, for one.
+ */
+function isIcon(img: Element, url: URL) {
+  if (img.classList.contains('emoji') || ICON_PATH.test(url.pathname)) return true
+  const declared = Math.max(Number(img.getAttribute('width')) || 0, Number(img.getAttribute('height')) || 0)
+  return declared > 0 && declared <= ICON_MAX_SIZE
+}
+
 /**
  * Sanitizes Jira-rendered HTML and makes it displayable:
  * - images on the Jira site go through the authenticated `jira://` proxy
@@ -232,7 +248,10 @@ export function prepareJiraHtml(html: string, site: string, attachments: Attachm
 
     // Inline emoji/icons stay as they are; real images get a wrapper that shows a loader.
     // JiraHtml flips `data-state` to loaded/error once the browser has settled.
-    if (img.classList.contains('emoji') || url.pathname.startsWith('/images/icons/')) continue
+    if (isIcon(img, url)) {
+      img.classList.add('jira-icon')
+      continue
+    }
     const wrap = document.createElement('span')
     wrap.className = 'jira-img-wrap'
     wrap.dataset.state = 'loading'

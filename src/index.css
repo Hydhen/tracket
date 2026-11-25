@@ -153,12 +153,17 @@
 }
 /* Inline emoji and icons must stay text-sized */
 .jira-html img.emoji,
-.jira-html img[src*='/images/icons/'] {
+.jira-html img[src*='/images/icons/'],
+.jira-html img.jira-icon {
   display: inline;
   height: 1.1em;
   width: auto;
   margin: 0;
   border-radius: 0;
+}
+/* Its middle level with the middle of the capitals, like the icon of a ticket mentioned in a comment */
+.jira-html img.jira-icon {
+  vertical-align: -0.18em;
 }
 .jira-html .panel,
 .jira-html .code.panel {
