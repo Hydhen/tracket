@@ -244,7 +244,41 @@ export type ApiErrorKind =
   | 'notFound'
   | 'network'
   | 'keychain'
+  | 'sprocket'
   | 'unexpected'
+
+/** The connection to Sprocket, the companion app that runs agent workflows on tickets */
+export interface SprocketSession {
+  address: string
+  /** False when Sprocket doesn't answer (closed, or its token changed) */
+  reachable: boolean
+  version: string | null
+  agentsReady: boolean
+  message: string | null
+}
+
+export interface SprocketWorkflow {
+  id: string
+  name: string
+  description: string
+}
+
+export type SprocketRunState = 'running' | 'waiting' | 'passed' | 'failed' | 'cancelled' | 'interrupted'
+export type SprocketJobState = 'running' | 'waiting' | 'done' | 'failed' | 'rejected' | 'stopped' | 'interrupted'
+
+/** A run as Sprocket describes it; only what the ticket view shows */
+export interface SprocketRun {
+  id: string
+  workflowName: string
+  number: number
+  startedBy: string
+  state: SprocketRunState
+  startedAt: string
+  steps: { id: string; kind: 'agent' | 'approval'; agent: string | null }[]
+  jobs: { id: string; stepId: string; state: SprocketJobState; attempt: number }[]
+  /** Pending only */
+  approvals: { id: string; kind: 'gate' | 'tool'; jobId: string | null; summary: string; toolName: string | null }[]
+}
 
 export class ApiError extends Error {
   kind: ApiErrorKind
@@ -344,4 +378,17 @@ export const api = {
   setTimerBadge: (running: boolean) => call<void>('set_timer_badge', { running }),
   addWorklog: (key: string, seconds: number, started: string, comment?: string) =>
     call<void>('add_worklog', { key, seconds, started, comment }),
+  /** Without a token, Sprocket's own is used when it runs on this computer */
+  sprocketSignIn: (address: string, token?: string) =>
+    call<SprocketSession>('sprocket_sign_in', { address, token: token || null }),
+  /** null when not signed in */
+  sprocketSession: () => call<SprocketSession | null>('sprocket_session'),
+  sprocketSignOut: () => call<void>('sprocket_sign_out'),
+  sprocketWorkflows: () => call<SprocketWorkflow[]>('sprocket_workflows'),
+  /** The ticket's runs, newest first */
+  sprocketRuns: (key: string) => call<SprocketRun[]>('sprocket_runs', { key }),
+  sprocketStartRun: (run: { workflow: string; key: string; title: string; url: string; folder: string; startedBy: string }) =>
+    call<SprocketRun>('sprocket_start_run', { run }),
+  sprocketDecide: (id: string, approve: boolean, by: string, reason?: string) =>
+    call<void>('sprocket_decide', { id, approve, by, reason: reason || null }),
 }

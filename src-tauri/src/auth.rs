@@ -197,6 +197,7 @@ pub async fn current_session(http: tauri::State<'_, reqwest::Client>) -> Result<
 #[tauri::command]
 pub fn logout(window: tauri::WebviewWindow) -> Result<()> {
     delete_credentials()?;
+    crate::sprocket::forget()?;
     window
         .clear_all_browsing_data()
         .map_err(|e| AppError::new("unexpected", format!("Couldn't erase the local data: {e}")))

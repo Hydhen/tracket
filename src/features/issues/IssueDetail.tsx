@@ -52,6 +52,9 @@ import { Icon } from './IssueList'
 import { isWideValue } from './fieldValue'
 import { JiraFieldValue } from './JiraFieldValue'
 import { TimeTracker } from '@/features/timer/TimeTracker'
+import { AgentsMenu } from '@/features/sprocket/AgentsMenu'
+import { AgentsSection } from '@/features/sprocket/AgentsSection'
+import { useSprocketPrefs, useSprocketReady } from '@/features/sprocket/useSprocket'
 import { StatusMenu } from '@/features/transitions/StatusMenu'
 import { useTicketMoves } from '@/features/transitions/movesContext'
 import { StatusPill } from './StatusPill'
@@ -188,6 +191,22 @@ export function IssueDetail({
     },
   })
   const started = startWork.data?.kind === 'started' ? startWork.data : undefined
+
+  // Sprocket's agents work in the ticket's worktree, made here as Start working makes it
+  const sprocketReady = useSprocketReady()
+  const sprocketPrefs = useSprocketPrefs()
+  const worktreeFolder = async () => {
+    const values = routingFields.length > 0 ? await queryClient.fetchQuery(routingValues(routingFields)) : {}
+    const project = projectOf(values)
+    if (!project) {
+      throw new ApiError('unexpected', 'No project in the settings has the metadata of this ticket: add one in Settings › Quick start.')
+    }
+    const outcome = await api.createWorktree(project.path, issue.key)
+    if (outcome.status === 'conflict') {
+      throw new ApiError('unexpected', "Something is in the way of the ticket's worktree: use Start working once to sort it out.")
+    }
+    return outcome.worktree.folder
+  }
   const copyPopup = useCopyPopup()
 
   // The big title scrolled under the top row: the row shows the title itself from then on
@@ -387,6 +406,9 @@ export function IssueDetail({
               </div>
             </div>
             <div className="ml-auto flex shrink-0 gap-1">
+              {sprocketReady && sprocketPrefs.button && (
+                <AgentsMenu issue={issue} worktreeFolder={worktreeFolder} trigger="header" />
+              )}
               <Button
                 variant="outline"
                 size="icon"
@@ -533,6 +555,8 @@ export function IssueDetail({
         )}
 
         <TimeTracker issueKey={issue.key} />
+
+        {sprocketReady && sprocketPrefs.section && <AgentsSection issue={issue} worktreeFolder={worktreeFolder} />}
 
         {isPending && (
           <div className="mt-8 flex justify-center">
