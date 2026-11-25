@@ -1,5 +1,13 @@
 # tracket
 
+## 0.7.7
+
+### Patch Changes
+
+- [`8ad2d41`](https://github.com/Hydhen/tracket/commit/8ad2d418fcb0a5ad62dd2c2e45dbeb24190f8183) Thanks [@Hydhen](https://github.com/Hydhen)! - The icon of a ticket mentioned in a comment stays in the line of text, instead of dropping below it and leaving a gap.
+
+- [`8672f86`](https://github.com/Hydhen/tracket/commit/8672f86e11cb8c3fc0256af33177fd659e3a6c02) Thanks [@Hydhen](https://github.com/Hydhen)! - The title of a ticket moves up into its header as you scroll, and the timer bar widens to the whole pane when it sticks to the top.
+
 ## 0.7.6
 
 ### Patch Changes
