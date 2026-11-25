@@ -112,7 +112,7 @@ export function IssueList({
   onOpenSide: (key: string) => void
 }) {
   return (
-    <div className="flex-1 overflow-auto">
+    <div data-part="list" className="flex-1 overflow-auto">
       {GROUPS.map(({ id, label, match }) => {
         const items = issues.filter(match)
         if (items.length === 0) return null

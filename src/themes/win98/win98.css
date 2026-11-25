@@ -1,0 +1,289 @@
+/*
+ * Windows 98: grey windows with bevelled edges, a navy title bar, white sunken lists, system fonts, a navy selection with
+ * a dotted outline, a yellow tooltip. Built on the light theme (the app sets no `.dark` for it), so it only says what is
+ * different. The values are those of the brief (tracket-themes-brief.md, sections 4.7 and 5.1). A fun theme is not held to
+ * the contrast rules of the standard ones.
+ *
+ * Its fonts are the ones of the system (Tahoma and the like), so there is nothing to bundle. The brief's 12px and its 30px
+ * rows are left out: the app keeps its own sizes.
+ *
+ * `:root[data-theme]` rather than `[data-theme]` alone, to be as specific as the rules of the base it sits on.
+ */
+:root[data-theme='win98'] {
+  font-family: Tahoma, 'MS Sans Serif', 'Microsoft Sans Serif', Verdana, sans-serif;
+  --font-mono: 'Courier New', monospace;
+
+  /* The bevels, as the box-shadows of the brief: raised (buttons, panels), sunken (inputs, lists), pressed, and a thin raised */
+  --w98-raised: inset -1px -1px #0a0a0a, inset 1px 1px #ffffff, inset -2px -2px #808080, inset 2px 2px #dfdfdf;
+  --w98-sunken: inset 1px 1px #808080, inset -1px -1px #ffffff, inset 2px 2px #0a0a0a, inset -2px -2px #dfdfdf;
+  --w98-pressed: inset -1px -1px #ffffff, inset 1px 1px #0a0a0a, inset -2px -2px #dfdfdf, inset 2px 2px #808080;
+  --w98-thin: inset -1px -1px #404040, inset 1px 1px #ffffff;
+  /* The checked pattern of a pressed toggle */
+  --w98-checks: repeating-conic-gradient(#c0c0c0 0 25%, #ffffff 0 50%) 0 0 / 2px 2px;
+
+  /* The shadcn tokens: the face of a window is grey, what you look into is white */
+  --background: #c0c0c0;
+  --bar: #000080;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #c0c0c0;
+  --popover-foreground: #000000;
+  --primary: #000080;
+  --primary-foreground: #ffffff;
+  --secondary: #c0c0c0;
+  --secondary-foreground: #000000;
+  --muted: #c0c0c0;
+  --muted-foreground: #404040;
+  --accent: #dfdfdf;
+  --accent-foreground: #000000;
+  --destructive: #c00000;
+  --border: #808080;
+  --input: #808080;
+  --ring: #000000;
+  --sidebar: #c0c0c0;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #000080;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #dfdfdf;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #808080;
+  --sidebar-ring: #000000;
+  --radius: 0px;
+
+  /* A timer that runs: a black display with red digits */
+  --alert: #ff4d4d;
+  --alert-dot: #ff0000;
+  --alert-bg: #000000;
+  --alert-bg-hover: #202020;
+  --alert-line: #808080;
+  --alert-line-strong: #808080;
+  --notch-bg: #000000;
+  --notch-fg: #ff4d4d;
+  --notch-line: #808080;
+
+  /* Status: an active ticket is navy, a finished one green, the others the grey of a button */
+  --chip-active-bg: #000080;
+  --chip-active-fg: #ffffff;
+  --chip-done-bg: #008000;
+  --chip-done-fg: #ffffff;
+  --action: #0000ee;
+  --close: #c0c0c0;
+  --close-fg: #000000;
+  --kind-open: #808080;
+  --kind-open-glow: #000000;
+  --kind-open-tint: #dfdfdf;
+  --kind-open-bar: #c0c0c0;
+  --kind-active: #000080;
+  --kind-active-glow: #000080;
+  --kind-active-tint: #c8c8f0;
+  --kind-resolved: #00b000;
+  --kind-resolved-glow: #008000;
+  --kind-resolved-tint: #c8e8c8;
+  --kind-closed: #004000;
+  --kind-closed-glow: #004000;
+  --kind-closed-tint: #b8d8b8;
+
+  /* The glass over the list: a grey window, not dark */
+  --overlay-bg: rgb(192 192 192 / 0.95);
+  --overlay-fg: #000000;
+  --overlay-muted: #404040;
+  --overlay-dim: #808080;
+  --overlay-dashed: #000000;
+  --overlay-line: #808080;
+  --overlay-line-soft: #808080;
+  --overlay-surface: #ffffff;
+  --overlay-hover: rgb(0 0 128 / 0.15);
+  --overlay-error: #c00000;
+  --zone-edit: #800080;
+  --zone-edit-tint: #e6d0e6;
+  --zone-edit-line: #808080;
+  --zone-assign: #008000;
+  --zone-assign-tint: #cfe6cf;
+  --zone-assign-line: #808080;
+  --zone-unassign: #b45f00;
+  --zone-unassign-tint: #f0e0c8;
+  --zone-unassign-line: #808080;
+
+  /* The effects (see the `fx` section of index.css): the title bar fades from navy to blue */
+  --fx-bar-bg: linear-gradient(90deg, #000080, #1084d0);
+}
+
+/* Bare `rounded` and `rounded-full` are fixed sizes in Tailwind, so they don't follow --radius: nothing is round */
+:root[data-theme='win98'] .rounded,
+:root[data-theme='win98'] .rounded-full {
+  border-radius: 0;
+}
+
+/* The title bar: white bold text on the gradient, and the three buttons small and raised, like the window of the time */
+:root[data-theme='win98'] [data-part='brand'] {
+  color: #ffffff;
+  font-weight: 700;
+}
+:root[data-theme='win98'] [data-part='titlebar'] {
+  color: #ffffff;
+}
+:root[data-theme='win98'] [data-part='titlebar'] > div:last-child {
+  padding-right: 4px;
+}
+:root[data-theme='win98'] [data-part='titlebar'] button {
+  align-self: center;
+  width: 22px;
+  height: 20px;
+  margin-left: 2px;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--w98-raised);
+}
+:root[data-theme='win98'] [data-part='titlebar'] button:active {
+  box-shadow: var(--w98-pressed);
+}
+:root[data-theme='win98'] .timer-pill {
+  border: 0;
+  border-radius: 0;
+  box-shadow: var(--w98-sunken);
+}
+
+/* Buttons are raised, and sink when pressed (the shadcn ones: the rows of lists are not buttons of this kind) */
+:root[data-theme='win98'] [data-slot='button'] {
+  border: 0;
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--w98-raised);
+}
+:root[data-theme='win98'] [data-slot='button']:active:not(:disabled) {
+  box-shadow: var(--w98-pressed);
+}
+/* Fields are sunken and white */
+:root[data-theme='win98'] input:not([type='checkbox']),
+:root[data-theme='win98'] select,
+:root[data-theme='win98'] textarea {
+  border: 0;
+  background: #ffffff;
+  color: #000000;
+  box-shadow: var(--w98-sunken);
+}
+:root[data-theme='win98'] input[type='checkbox'] {
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  background: #ffffff;
+  box-shadow: var(--w98-sunken);
+  vertical-align: middle;
+}
+:root[data-theme='win98'] input[type='checkbox']:checked {
+  background: #ffffff
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 15 15'><path d='M3.5 7.5l3 3 5-6' stroke='black' stroke-width='2' fill='none'/></svg>")
+    center / 15px no-repeat;
+}
+/* Tabs and the views of the list: raised, and the one you are on is pressed, on the checked pattern */
+:root[data-theme='win98'] [role='tab'] {
+  box-shadow: var(--w98-raised);
+}
+:root[data-theme='win98'] [role='tab'][aria-selected='true'] {
+  background: var(--w98-checks);
+  color: #000000;
+  box-shadow: var(--w98-pressed);
+}
+
+/* Lists are white and sunken, with the selection in navy and a dotted outline */
+:root[data-theme='win98'] [data-part='list'] {
+  background: #ffffff;
+  box-shadow: var(--w98-sunken);
+}
+:root[data-theme='win98'] [data-part='group-title'] {
+  background: #c0c0c0;
+  color: #000000;
+  box-shadow: var(--w98-thin);
+}
+:root[data-theme='win98'] [data-part='row'][data-selected='true'] {
+  background: #000080;
+  outline: 1px dotted #ffffff;
+  outline-offset: -2px;
+}
+:root[data-theme='win98'] [data-part='row'][data-selected='true'] * {
+  color: #ffffff;
+}
+
+/* Panels: the columns of the board are raised, the cards in them white, the cells of a ticket sunken */
+:root[data-theme='win98'] [data-part='column'] {
+  background: #c0c0c0;
+  box-shadow: var(--w98-raised);
+}
+:root[data-theme='win98'] [data-part='card'] {
+  background: #ffffff;
+  box-shadow: var(--w98-thin);
+}
+:root[data-theme='win98'] [data-part='cell'] {
+  padding: 0.25rem 0.5rem;
+  background: #ffffff;
+  box-shadow: var(--w98-sunken);
+}
+:root[data-theme='win98'] [data-part='chip'] {
+  box-shadow: var(--w98-thin);
+}
+/* The tooltip of the time, for the hints too */
+:root[data-theme='win98'] [data-part='drop-hint'] {
+  border: 1px solid #000000;
+  background: #ffffe1;
+  color: #000000;
+}
+
+/* The clocks are the digits of a display, links are blue, the focus is a dotted line inside the control */
+:root[data-theme='win98'] [data-part='clock'] {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+}
+:root[data-theme='win98'] a,
+:root[data-theme='win98'] .jira-html {
+  --tw-prose-links: #0000ee;
+}
+:root[data-theme='win98'] a {
+  color: #0000ee;
+}
+:root[data-theme='win98'] :focus-visible {
+  outline: 1px dotted #000000;
+  outline-offset: -4px;
+}
+
+/* The scrollbars: a checked track, a raised thumb, and arrow buttons (the standard properties would switch the
+   styling of the browser off, so they are reset) */
+:root[data-theme='win98'] * {
+  scrollbar-width: auto;
+  scrollbar-color: auto;
+}
+:root[data-theme='win98'] ::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+:root[data-theme='win98'] ::-webkit-scrollbar-track {
+  background: var(--w98-checks);
+}
+:root[data-theme='win98'] ::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  box-shadow: var(--w98-raised);
+}
+:root[data-theme='win98'] ::-webkit-scrollbar-corner {
+  background: #c0c0c0;
+}
+:root[data-theme='win98'] ::-webkit-scrollbar-button:single-button {
+  display: block;
+  width: 16px;
+  height: 16px;
+  background-color: #c0c0c0;
+  background-repeat: no-repeat;
+  background-position: center;
+  box-shadow: var(--w98-raised);
+}
+:root[data-theme='win98'] ::-webkit-scrollbar-button:vertical:start:decrement {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'><path d='M4 10l4-4 4 4z'/></svg>");
+}
+:root[data-theme='win98'] ::-webkit-scrollbar-button:vertical:end:increment {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'><path d='M4 6l4 4 4-4z'/></svg>");
+}
+:root[data-theme='win98'] ::-webkit-scrollbar-button:horizontal:start:decrement {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'><path d='M10 4l-4 4 4 4z'/></svg>");
+}
+:root[data-theme='win98'] ::-webkit-scrollbar-button:horizontal:end:increment {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'><path d='M6 4l4 4-4 4z'/></svg>");
+}

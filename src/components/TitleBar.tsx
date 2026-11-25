@@ -69,6 +69,7 @@ export function TitleBar() {
 
   return (
     <div
+      data-part="titlebar"
       data-tauri-drag-region
       className="relative flex h-9 shrink-0 select-none items-center border-b bg-bar text-foreground"
     >

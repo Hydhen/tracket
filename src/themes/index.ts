@@ -11,6 +11,7 @@ const LOADERS: Partial<Record<ThemeId, () => Promise<unknown>>> = {
   neon: () => import('./neon'),
   quest: () => import('./quest'),
   terminal: () => import('./terminal'),
+  win98: () => import('./win98'),
 }
 
 /** Whether the theme can be chosen: the standard ones always, a fun one once it is built */

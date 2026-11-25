@@ -274,7 +274,7 @@ export function IssueTree({
   }
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div data-part="list" className="flex-1 overflow-auto">
       <ul role="tree">
         {roots.map((key) => {
           const issue = rootIssues.find((i) => i.key === key)
