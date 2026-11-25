@@ -47,6 +47,8 @@ function IssueRow({
   return (
     <li className={cn('group relative select-none', row.dragging && 'opacity-45')} {...row.dragProps}>
       <button
+        data-part="row"
+        data-selected={selected || undefined}
         // Ctrl/Cmd+click picks several tickets to move together, Alt+click opens the side view
         onClick={(e) => row.handleModifierClick(e, () => onOpenSide(i.key)) || onSelect(i.key)}
         className={cn(
@@ -110,13 +112,13 @@ export function IssueList({
   onOpenSide: (key: string) => void
 }) {
   return (
-    <div className="flex-1 overflow-auto">
+    <div data-part="list" className="flex-1 overflow-auto">
       {GROUPS.map(({ id, label, match }) => {
         const items = issues.filter(match)
         if (items.length === 0) return null
         return (
           <section key={id}>
-            <h2 className="sticky top-0 z-10 border-b bg-background px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <h2 data-part="group-title" className="sticky top-0 z-10 border-b bg-background px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {label} · {items.length}
             </h2>
             <ul>

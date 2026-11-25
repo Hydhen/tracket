@@ -17,9 +17,9 @@ const TARGET_X = GRAPH_W - NODE_W
 const MIN_H = 360
 
 // The edit zone's colours: none of the status colours, so it never reads as a status
-const EDIT_COLORS = { glow: '#c4b5fd', tint: '#1d1a36' }
-const UNASSIGN_COLORS = { glow: '#fdba74', tint: '#2a1d12' }
-const ASSIGN_COLORS = { glow: '#5eead4', tint: '#10252a' }
+const EDIT_COLORS = { glow: 'var(--zone-edit)', tint: 'var(--zone-edit-tint)' }
+const UNASSIGN_COLORS = { glow: 'var(--zone-unassign)', tint: 'var(--zone-unassign-tint)' }
+const ASSIGN_COLORS = { glow: 'var(--zone-assign)', tint: 'var(--zone-assign-tint)' }
 
 /** Vertical centre of each target, spaced 96px apart around the middle (tighter when there are many). */
 function layout(count: number) {
@@ -123,7 +123,7 @@ export function StatusGraphOverlay({
       aria-hidden={!open}
       className={cn(
         // Dark whatever the theme: the graph colours are designed for it
-        'absolute inset-0 z-20 flex flex-col bg-[rgba(10,10,11,0.92)] text-[#f4f4f5] backdrop-blur-[6px] transition-opacity duration-[250ms]',
+        'absolute inset-0 z-20 flex flex-col bg-overlay text-overlay-fg backdrop-blur-[6px] transition-opacity duration-[250ms]',
         open ? 'opacity-100' : 'pointer-events-none opacity-0',
       )}
     >
@@ -149,8 +149,8 @@ export function StatusGraphOverlay({
           )}
           style={{
             background: editHover ? EDIT_COLORS.tint : 'transparent',
-            borderColor: editHover ? EDIT_COLORS.glow : '#4b4570',
-            boxShadow: editHover ? `0 0 0 1px ${EDIT_COLORS.glow}, 0 0 32px ${EDIT_COLORS.glow}44` : 'none',
+            borderColor: editHover ? EDIT_COLORS.glow : 'var(--zone-edit-line)',
+            boxShadow: editHover ? `0 0 0 1px ${EDIT_COLORS.glow}, 0 0 32px color-mix(in oklab, ${EDIT_COLORS.glow} 26.67%, transparent)` : 'none',
           }}
         >
           {/* No pointer events on the content, or hovering it fires dragleave on the zone */}
@@ -158,7 +158,7 @@ export function StatusGraphOverlay({
             <SlidersHorizontal className="size-4" style={{ color: EDIT_COLORS.glow }} />
             Edit {what}
           </div>
-          <div className="pointer-events-none flex items-center gap-2 text-xs text-[#a0a0a8]">
+          <div className="pointer-events-none flex items-center gap-2 text-xs text-overlay-muted">
             {metaLoading ? (
               <>
                 <Spinner className="size-3" />
@@ -169,7 +169,7 @@ export function StatusGraphOverlay({
             ) : canEdit ? (
               <span>
                 {describeFields(editable)}
-                {issues.length > 1 && <span className="text-[#6f6f78]"> — shared by all of them</span>}
+                {issues.length > 1 && <span className="text-overlay-dim"> — shared by all of them</span>}
               </span>
             ) : issues.length > 1 ? (
               'No field can be edited on all of these tickets'
@@ -196,15 +196,15 @@ export function StatusGraphOverlay({
             className="box-border flex min-h-0 flex-1 flex-col items-center justify-center rounded-xl border border-dashed px-3 text-center transition-[background,border-color,box-shadow] duration-200"
             style={{
               background: assignHover ? ASSIGN_COLORS.tint : 'transparent',
-              borderColor: assignHover ? ASSIGN_COLORS.glow : '#3f5c5a',
-              boxShadow: assignHover ? `0 0 0 1px ${ASSIGN_COLORS.glow}, 0 0 32px ${ASSIGN_COLORS.glow}44` : 'none',
+              borderColor: assignHover ? ASSIGN_COLORS.glow : 'var(--zone-assign-line)',
+              boxShadow: assignHover ? `0 0 0 1px ${ASSIGN_COLORS.glow}, 0 0 32px color-mix(in oklab, ${ASSIGN_COLORS.glow} 26.67%, transparent)` : 'none',
             }}
           >
             <div className="pointer-events-none flex items-center gap-2 text-sm font-semibold">
               <UserPlus className="size-4" style={{ color: ASSIGN_COLORS.glow }} />
               Assign to…
             </div>
-            <div className="pointer-events-none text-xs text-[#a0a0a8]">Pick who gets {what}</div>
+            <div className="pointer-events-none text-xs text-overlay-muted">Pick who gets {what}</div>
           </div>
 
           <div
@@ -227,15 +227,15 @@ export function StatusGraphOverlay({
             )}
             style={{
               background: unassignHover ? UNASSIGN_COLORS.tint : 'transparent',
-              borderColor: unassignHover ? UNASSIGN_COLORS.glow : '#5a4a3a',
-              boxShadow: unassignHover ? `0 0 0 1px ${UNASSIGN_COLORS.glow}, 0 0 32px ${UNASSIGN_COLORS.glow}44` : 'none',
+              borderColor: unassignHover ? UNASSIGN_COLORS.glow : 'var(--zone-unassign-line)',
+              boxShadow: unassignHover ? `0 0 0 1px ${UNASSIGN_COLORS.glow}, 0 0 32px color-mix(in oklab, ${UNASSIGN_COLORS.glow} 26.67%, transparent)` : 'none',
             }}
           >
             <div className="pointer-events-none flex items-center gap-2 text-sm font-semibold">
               <UserMinus className="size-4" style={{ color: UNASSIGN_COLORS.glow }} />
               Unassign {what}
             </div>
-            <div className="pointer-events-none text-xs text-[#a0a0a8]">
+            <div className="pointer-events-none text-xs text-overlay-muted">
               {canUnassign ? 'Leaves it with nobody' : 'Nobody has this ticket'}
             </div>
           </div>
@@ -247,22 +247,22 @@ export function StatusGraphOverlay({
           {mixed ? (
             <div className="flex max-w-md flex-col items-center text-center">
               <div className="text-xl font-bold tracking-tight">These tickets don't share a status</div>
-              <div className="mt-1.5 text-[13px] text-[#a0a0a8]">
+              <div className="mt-1.5 text-[13px] text-overlay-muted">
                 A status change applies to every ticket, so they all have to be in the same one.
               </div>
               <ul className="mt-5 flex flex-wrap justify-center gap-2">
                 {groups.map(({ status, count }) => (
                   <li
                     key={status.id}
-                    className="flex items-center gap-2 rounded-lg border border-dashed border-[#3a3a3f] px-3 py-2 text-sm font-semibold text-[#d4d4d8]"
+                    className="flex items-center gap-2 rounded-lg border border-dashed border-overlay-line px-3 py-2 text-sm font-semibold text-overlay-dashed"
                   >
                     <span className="size-2.5 rounded-full" style={{ background: STATUS_COLORS[statusKind(status)].dot }} />
                     {status.name.toUpperCase()}
-                    <span className="font-normal text-[#a0a0a8]">×{count}</span>
+                    <span className="font-normal text-overlay-muted">×{count}</span>
                   </li>
                 ))}
               </ul>
-              <div className="mt-4 text-[13px] text-[#a0a0a8]">
+              <div className="mt-4 text-[13px] text-overlay-muted">
                 Pick tickets in one status to move them together. Their shared fields can still be edited above.
               </div>
             </div>
@@ -270,7 +270,7 @@ export function StatusGraphOverlay({
             <>
               <div className="mb-6 text-center">
                 <div className="text-xl font-bold tracking-tight">{title}</div>
-                <div className="mt-1.5 text-[13px] text-[#a0a0a8]">
+                <div className="mt-1.5 text-[13px] text-overlay-muted">
                   Now {current?.name.toUpperCase()} · drop on a status
                 </div>
               </div>
@@ -288,20 +288,20 @@ export function StatusGraphOverlay({
                   {current && (
                     <>
                       <div
-                        className="absolute left-0 text-[11px] tracking-[0.08em] text-[#a0a0a8]"
+                        className="absolute left-0 text-[11px] tracking-[0.08em] text-overlay-muted"
                         style={{ top: centre - NODE_H / 2 - 26 }}
                       >
                         NOW
                       </div>
                       <div
-                        className="absolute left-0 box-border flex items-center gap-2.5 rounded-xl border border-dashed border-[#3a3a3f] px-4"
+                        className="absolute left-0 box-border flex items-center gap-2.5 rounded-xl border border-dashed border-overlay-line px-4"
                         style={{ top: centre - NODE_H / 2, width: NODE_W, height: NODE_H }}
                       >
                         <span
                           className="size-2.5 shrink-0 rounded-full"
                           style={{ background: STATUS_COLORS[statusKind(current)].dot }}
                         />
-                        <span className="whitespace-nowrap text-sm font-semibold text-[#d4d4d8]">
+                        <span className="whitespace-nowrap text-sm font-semibold text-overlay-dashed">
                           {current.name.toUpperCase()}
                         </span>
                       </div>
@@ -315,7 +315,7 @@ export function StatusGraphOverlay({
                   )}
                   {!loading && (error || targets.length === 0) && (
                     <p
-                      className="absolute flex items-center text-sm text-[#a0a0a8]"
+                      className="absolute flex items-center text-sm text-overlay-muted"
                       style={{ left: 200, right: 0, top: centre - NODE_H / 2, height: NODE_H }}
                     >
                       {error
@@ -342,12 +342,12 @@ export function StatusGraphOverlay({
                         <path
                           d={`M${NODE_W} ${centre} C 280 ${centre}, 280 ${cy}, ${TARGET_X} ${cy}`}
                           className={cn('fill-none transition-[stroke] duration-200', !on && 'status-edge-flow')}
-                          stroke={on ? colors.glow : '#3a3a3f'}
+                          style={{ stroke: on ? colors.glow : 'var(--overlay-line)' }}
                           strokeWidth={on ? 2.5 : 1.5}
                           strokeDasharray={on ? 'none' : '6 6'}
                           strokeLinecap="round"
                         />
-                        <circle cx={TARGET_X} cy={cy} r={4} fill={on ? colors.glow : '#3a3a3f'} />
+                        <circle cx={TARGET_X} cy={cy} r={4} style={{ fill: on ? colors.glow : 'var(--overlay-line)' }} />
                       </svg>
                     )
                   })}
@@ -375,9 +375,9 @@ export function StatusGraphOverlay({
                           top: centres[i] - NODE_H / 2,
                           width: NODE_W,
                           height: NODE_H,
-                          background: on ? colors.tint : '#17171a',
-                          borderColor: on ? colors.glow : '#2e2e32',
-                          boxShadow: on ? `0 0 0 1px ${colors.glow}, 0 0 32px ${colors.glow}66` : '0 0 0 0 transparent',
+                          background: on ? colors.tint : 'var(--overlay-surface)',
+                          borderColor: on ? colors.glow : 'var(--overlay-line-soft)',
+                          boxShadow: on ? `0 0 0 1px ${colors.glow}, 0 0 32px color-mix(in oklab, ${colors.glow} 40%, transparent)` : '0 0 0 0 transparent',
                           transform: open ? (on ? 'scale(1.07)' : 'scale(1)') : 'translateX(24px)',
                           opacity: open ? (hover && !on ? 0.5 : 1) : 0,
                         }}
@@ -395,7 +395,7 @@ export function StatusGraphOverlay({
             </>
           )}
 
-          <div className="mt-5 text-xs text-[#a0a0a8]">Release anywhere else to cancel</div>
+          <div className="mt-5 text-xs text-overlay-muted">Release anywhere else to cancel</div>
         </div>
       </div>
     </div>

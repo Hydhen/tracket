@@ -4,7 +4,6 @@ import { ChevronDown, ChevronRight, Columns2, Plus, RefreshCw, Rows2, Search, Se
 import { useEffect, useState, type ReactNode } from 'react'
 import { useGroupRef } from 'react-resizable-panels'
 import { Spinner } from '@/components/Spinner'
-import { ThemeToggle } from '@/components/ThemeToggle'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
@@ -255,7 +254,7 @@ export function MainShell({ session }: { session: Session }) {
     <TicketActionsContext.Provider value={{ openInSide: (key) => openByKey(key, true), linkRepo: openSettings }}>
     <TicketMovesContext.Provider value={moves}>
       <div className="flex h-full bg-background text-foreground">
-        <aside className="flex w-96 flex-col border-r">
+        <aside data-part="sidebar" className="flex w-96 flex-col border-r">
           <button
             onClick={() => setPalette('open')}
             className="flex h-[45px] items-center gap-2 border-b px-4 text-left text-sm text-muted-foreground hover:bg-accent"
@@ -314,7 +313,7 @@ export function MainShell({ session }: { session: Session }) {
           </div>
 
           {isBoard && (
-            <div className="border-b bg-muted/40 px-4 py-1.5 text-xs text-muted-foreground">
+            <div data-part="drop-hint" className="border-b bg-muted/40 px-4 py-1.5 text-xs text-muted-foreground">
               Drop board tickets here to take them. Drag one out onto the board to give it back.
             </div>
           )}
@@ -396,7 +395,9 @@ export function MainShell({ session }: { session: Session }) {
                 dropHover ? 'border-primary bg-primary/10 text-foreground' : 'border-muted-foreground/40 text-muted-foreground',
               )}
             >
-              <span className="pointer-events-none">Drop to assign to you</span>
+              <span data-part="drop-hint" className="pointer-events-none">
+                Drop to assign to you
+              </span>
             </div>
           )}
           </div>
@@ -415,7 +416,6 @@ export function MainShell({ session }: { session: Session }) {
               <div className="truncate text-sm">{session.displayName}</div>
               <div className="truncate text-xs text-muted-foreground">{session.site.replace('https://', '')}</div>
             </div>
-            <ThemeToggle />
             <Button variant="ghost" size="icon" title="Settings" onClick={() => openSettings()}>
               <Settings className="size-4" />
             </Button>

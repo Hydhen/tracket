@@ -1,4 +1,4 @@
-import { CircleCheck, Info, ListChecks, LogOut, PanelTop, Rocket, UserRoundCheck, X, type LucideIcon } from 'lucide-react'
+import { CircleCheck, Info, ListChecks, LogOut, PanelTop, Palette, Rocket, UserRoundCheck, X, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Spinner } from '@/components/Spinner'
@@ -11,11 +11,13 @@ import { AboutSettings } from '@/features/update/AboutSettings'
 import { QuickStartSettings } from '@/features/workspace/QuickStartSettings'
 import { cn } from '@/lib/utils'
 import { ResolveDefaultsSettings } from '@/features/transitions/ResolveDefaultsSettings'
+import { AppearanceSettings } from './AppearanceSettings'
 import { TicketDetailsSettings } from './TicketDetailsSettings'
 
-type Category = 'details' | 'bulk' | 'resolve' | 'assignees' | 'quickstart' | 'account' | 'about'
+type Category = 'appearance' | 'details' | 'bulk' | 'resolve' | 'assignees' | 'quickstart' | 'account' | 'about'
 
 const CATEGORIES: { id: Category; label: string; icon: LucideIcon }[] = [
+  { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'details', label: 'Ticket details', icon: PanelTop },
   { id: 'bulk', label: 'Bulk edit', icon: ListChecks },
   { id: 'resolve', label: 'Resolve defaults', icon: CircleCheck },
@@ -95,7 +97,7 @@ export function SettingsDialog({
   linkProject?: string
   site?: string
 }) {
-  const [category, setCategory] = useState<Category>(linkProject ? 'quickstart' : 'details')
+  const [category, setCategory] = useState<Category>(linkProject ? 'quickstart' : CATEGORIES[0].id)
   const tabs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   useEffect(() => {
@@ -171,6 +173,7 @@ export function SettingsDialog({
             aria-labelledby={`settings-tab-${category}`}
             className="min-w-0 flex-1 overflow-auto px-6 py-5"
           >
+            {category === 'appearance' && <AppearanceSettings />}
             {category === 'details' && <TicketDetailsSettings />}
             {category === 'bulk' && <BulkEditSettings />}
             {category === 'resolve' && <ResolveDefaultsSettings />}

@@ -47,6 +47,39 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+
+    /* The tokens below (defined further down) as colours, so that classes can use them: bg-alert-bg, text-kind-open… */
+    --color-bar: var(--bar);
+    --color-alert: var(--alert);
+    --color-alert-dot: var(--alert-dot);
+    --color-alert-bg: var(--alert-bg);
+    --color-alert-bg-hover: var(--alert-bg-hover);
+    --color-alert-line: var(--alert-line);
+    --color-alert-line-strong: var(--alert-line-strong);
+    --color-notch-muted: var(--notch-muted);
+    --color-notch-dim: var(--notch-dim);
+    --color-chip-active-bg: var(--chip-active-bg);
+    --color-chip-active-fg: var(--chip-active-fg);
+    --color-chip-done-bg: var(--chip-done-bg);
+    --color-chip-done-fg: var(--chip-done-fg);
+    --color-action: var(--action);
+    --color-close: var(--close);
+    --color-close-fg: var(--close-fg);
+    --color-kind-open: var(--kind-open);
+    --color-kind-open-bar: var(--kind-open-bar);
+    --color-kind-active: var(--kind-active);
+    --color-kind-resolved: var(--kind-resolved);
+    --color-kind-closed: var(--kind-closed);
+    --color-overlay: var(--overlay-bg);
+    --color-overlay-fg: var(--overlay-fg);
+    --color-overlay-muted: var(--overlay-muted);
+    --color-overlay-dim: var(--overlay-dim);
+    --color-overlay-dashed: var(--overlay-dashed);
+    --color-overlay-line: var(--overlay-line);
+    --color-overlay-line-soft: var(--overlay-line-soft);
+    --color-overlay-surface: var(--overlay-surface);
+    --color-overlay-hover: var(--overlay-hover);
+    --color-overlay-error: var(--overlay-error);
 }
 
 :root {
@@ -82,6 +115,77 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+
+    /*
+     * What the app says beyond the shadcn tokens: the values of today's look, in one place, so that a theme can
+     * change them. Where light and dark differ, .dark below says how.
+     */
+
+    /* The title bar: the background of the page, unless a theme gives it a colour of its own */
+    --bar: var(--background);
+
+    /* A timer that runs: text, the recording dot, the tinted background, and the lines around it */
+    --alert: oklch(57.7% 0.245 27.325);
+    --alert-dot: oklch(63.7% 0.237 25.331);
+    --alert-bg: color-mix(in oklab, var(--alert-dot) 10%, transparent);
+    --alert-bg-hover: color-mix(in oklab, var(--alert-dot) 15%, transparent);
+    --alert-line: color-mix(in oklab, var(--alert-dot) 50%, transparent);
+    --alert-line-strong: color-mix(in oklab, var(--alert-dot) 60%, transparent);
+
+    /* The timer notch of the title bar, and the mini window: always a black pill */
+    --notch-bg: #050505;
+    --notch-fg: #fff;
+    --notch-line: rgb(255 255 255 / 0.1);
+    --notch-muted: color-mix(in oklab, var(--notch-fg) 60%, transparent);
+    --notch-dim: color-mix(in oklab, var(--notch-fg) 35%, transparent);
+    --notch-action: color-mix(in oklab, var(--notch-fg) 75%, transparent);
+    --notch-action-hover: color-mix(in oklab, var(--notch-fg) 15%, transparent);
+
+    /* The status pill (by Jira category: to do keeps the muted colours), a link-like action, the close button */
+    --chip-active-bg: color-mix(in oklab, oklch(62.3% 0.214 259.815) 15%, transparent);
+    --chip-active-fg: oklch(48.8% 0.243 264.376);
+    --chip-done-bg: color-mix(in oklab, oklch(72.3% 0.219 149.579) 15%, transparent);
+    --chip-done-fg: oklch(52.7% 0.154 150.069);
+    --action: oklch(54.6% 0.245 262.881);
+    --close: oklch(57.7% 0.245 27.325);
+    --close-fg: #fff;
+
+    /* The four kinds of status: the dot, the glow when pointed at, the tint behind, and the bar of the tree */
+    --kind-open: #b4b4ba;
+    --kind-open-glow: #d4d4d8;
+    --kind-open-tint: #2a2a2f;
+    --kind-open-bar: oklch(87.1% 0.006 286.286);
+    --kind-active: #7db4ff;
+    --kind-active-glow: #7db4ff;
+    --kind-active-tint: #12264a;
+    --kind-resolved: #5ee38d;
+    --kind-resolved-glow: #5ee38d;
+    --kind-resolved-tint: #0f2e1c;
+    --kind-closed: #2f8f5b;
+    --kind-closed-glow: #3fbf7a;
+    --kind-closed-tint: #0c2a1b;
+
+    /* The dark glass over the list (moving tickets, assigning them): dark whatever the theme is */
+    --overlay-bg: rgb(10 10 11 / 0.92);
+    --overlay-fg: #f4f4f5;
+    --overlay-muted: #a0a0a8;
+    --overlay-dim: #6f6f78;
+    --overlay-dashed: #d4d4d8;
+    --overlay-line: #3a3a3f;
+    --overlay-line-soft: #2e2e32;
+    --overlay-surface: #17171a;
+    --overlay-hover: rgb(255 255 255 / 0.1);
+    --overlay-error: oklch(70.4% 0.191 22.216);
+    /* Its three zones: edit, assign, unassign (none of them a status colour, so they never read as one) */
+    --zone-edit: #c4b5fd;
+    --zone-edit-tint: #1d1a36;
+    --zone-edit-line: #4b4570;
+    --zone-assign: #5eead4;
+    --zone-assign-tint: #10252a;
+    --zone-assign-line: #3f5c5a;
+    --zone-unassign: #fdba74;
+    --zone-unassign-tint: #2a1d12;
+    --zone-unassign-line: #5a4a3a;
 }
 
 .dark {
@@ -116,6 +220,12 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 12%);
     --sidebar-ring: oklch(0.556 0 0);
+
+    --alert: oklch(70.4% 0.191 22.216);
+    --chip-active-fg: oklch(80.9% 0.105 251.813);
+    --chip-done-fg: oklch(87.1% 0.15 154.449);
+    --action: oklch(80.9% 0.105 251.813);
+    --kind-open-bar: #3a3a3f;
 }
 
 @layer base {
@@ -349,9 +459,9 @@
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  border: 1px solid rgb(255 255 255 / 0.1);
-  background: #050505;
-  color: #fff;
+  border: 1px solid var(--notch-line);
+  background: var(--notch-bg);
+  color: var(--notch-fg);
   user-select: none;
 }
 /* The button that changes the window's size: out of sight until the pill is pointed at */
@@ -365,7 +475,7 @@
   overflow: hidden;
   border-radius: 9999px;
   opacity: 0;
-  color: rgb(255 255 255 / 0.75);
+  color: var(--notch-action);
   transition:
     width 0.2s ease,
     margin-left 0.2s ease,
@@ -379,8 +489,8 @@
   opacity: 1;
 }
 .timer-pill-action:hover {
-  background: rgb(255 255 255 / 0.15);
-  color: #fff;
+  background: var(--notch-action-hover);
+  color: var(--notch-fg);
 }
 .mini-notch {
   width: 100%;
@@ -440,6 +550,158 @@ html[data-mini] body {
 * {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklab, var(--muted-foreground) 45%, transparent) transparent;
+}
+
+/*
+ * Effects: what a fun theme adds to colours. Each is a `--fx-*` value that a theme sets and that is inert when it
+ * isn't, so nothing here changes the standard themes. Parts of the UI that a theme can decorate say so with a
+ * `data-part`.
+ */
+body {
+  text-shadow: var(--fx-text-glow, none);
+}
+[data-part='detail-title'] {
+  text-transform: var(--fx-title-transform, none);
+  text-shadow: var(--fx-title-shadow, none);
+}
+[data-part='brand']::before {
+  content: var(--fx-brand-before, none);
+}
+[data-part='brand']::after {
+  content: var(--fx-brand-after, none);
+}
+[data-part='detail-title']::before {
+  content: var(--fx-title-before, none);
+}
+[data-part='group-title']::before {
+  content: var(--fx-group-before, none);
+}
+[data-part='column-title']::before {
+  content: var(--fx-column-before, none);
+}
+[data-part='chip']::before {
+  content: var(--fx-chip-before, none);
+}
+[data-part='chip']::after {
+  content: var(--fx-chip-after, none);
+}
+[data-part='row'][data-selected='true'] {
+  background-image: var(--fx-sel-image, none);
+  box-shadow: var(--fx-sel-shadow, none);
+}
+/* A clock that is running (or that doesn't say, like the one of the title bar) */
+[data-part='clock']:not([data-running='false'])::before {
+  content: var(--fx-clock-before, none);
+}
+[data-part='drop-hint']::before {
+  content: var(--fx-hint-before, none);
+}
+[data-part='board'] {
+  background-image: var(--fx-board-bg, none);
+  background-size: var(--fx-board-size, auto);
+}
+[data-part='detail'] {
+  min-height: 100%;
+  background-image: var(--fx-detail-bg, none);
+  background-size: var(--fx-detail-size, auto);
+}
+[data-part='section-label'] {
+  color: var(--fx-section-color, var(--muted-foreground));
+}
+[data-part='section-label']::before {
+  content: var(--fx-section-before, none);
+}
+[data-part='sidebar'] {
+  background-image: var(--fx-sidebar-bg, none);
+}
+[data-part='titlebar'] {
+  background-image: var(--fx-bar-bg, none);
+}
+/* A layer over the whole window, that lets everything through (scanlines, a vignette) */
+:root::after {
+  content: var(--fx-overlay-content, none);
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  background: var(--fx-overlay, none);
+}
+/* A band of light that goes down the window again and again, like the line of an old screen being redrawn */
+:root::before {
+  content: var(--fx-sweep-content, none);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--fx-sweep-height, 0);
+  z-index: 2147483646;
+  pointer-events: none;
+  background: var(--fx-sweep, none);
+  background-size: var(--fx-sweep-size, auto);
+  /* What fades the band out at its edges, if the theme wants it */
+  mask-image: var(--fx-sweep-mask, none);
+  animation: var(--fx-sweep-animation, none);
+  will-change: transform;
+}
+@keyframes fx-sweep {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(100vh);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root::before {
+    animation: none;
+    display: none;
+  }
+}
+/* The edge of a screen. Two layers over the window: a frame (rounded corners that cut it off, a falloff of dark and of
+   colour just inside its edge), and a softening of the picture that grows towards the edge */
+body::after {
+  content: var(--fx-edge-content, none);
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  border-radius: var(--fx-edge-radius, 0);
+  box-shadow: var(--fx-edge-shadow, none);
+}
+body::before {
+  content: var(--fx-edge-soft-content, none);
+  position: fixed;
+  inset: 0;
+  z-index: 2147483644;
+  pointer-events: none;
+  backdrop-filter: var(--fx-edge-soft, none);
+  mask-image: var(--fx-edge-soft-mask, none);
+}
+
+/*
+ * The width of the borders. Tailwind's `border` classes are 1px whatever the theme, so a theme that wants them thicker
+ * sets `--fx-border-width` and the classes follow it (only while a theme is on, and at 1px when it doesn't say).
+ */
+:root[data-theme] .border {
+  border-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-t {
+  border-top-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-b {
+  border-bottom-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-l {
+  border-left-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-r {
+  border-right-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-x {
+  border-inline-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-y {
+  border-block-width: var(--fx-border-width, 1px);
 }
 
 /*

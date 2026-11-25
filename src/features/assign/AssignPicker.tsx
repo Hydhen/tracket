@@ -6,14 +6,14 @@ import { cn } from '@/lib/utils'
 import { MAX_FAVORITE_ASSIGNEES, useFavoriteAssignees } from './favoriteAssignees'
 import { useAssignableUsers } from './useAssignableUsers'
 
-const GLOW = '#5eead4'
-const TINT = '#10252a'
+const GLOW = 'var(--zone-assign)'
+const TINT = 'var(--zone-assign-tint)'
 
 function Avatar({ user, className }: { user: User; className: string }) {
   return user.avatarUrl ? (
     <img src={user.avatarUrl} alt="" className={cn('shrink-0 rounded-full', className)} />
   ) : (
-    <span className={cn('shrink-0 rounded-full bg-[#2e2e32]', className)} />
+    <span className={cn('shrink-0 rounded-full bg-overlay-line-soft', className)} />
   )
 }
 
@@ -46,7 +46,7 @@ export function AssignPicker({
       aria-modal="true"
       aria-label={`Assign ${what} to`}
       // Dark whatever the theme, like the drag overlay it follows
-      className="absolute inset-0 z-20 flex flex-col overflow-auto bg-[rgba(10,10,11,0.92)] px-6 py-8 text-[#f4f4f5] backdrop-blur-[6px]"
+      className="absolute inset-0 z-20 flex flex-col overflow-auto bg-overlay px-6 py-8 text-overlay-fg backdrop-blur-[6px]"
       onMouseDown={(e) => e.target === e.currentTarget && onCancel()}
     >
       <button
@@ -54,7 +54,7 @@ export function AssignPicker({
         aria-label="Close"
         title="Close (Esc)"
         onClick={onCancel}
-        className="absolute right-3 top-3 rounded-md p-1.5 text-[#a0a0a8] hover:bg-white/10 hover:text-[#f4f4f5]"
+        className="absolute right-3 top-3 rounded-md p-1.5 text-overlay-muted hover:bg-overlay-hover hover:text-overlay-fg"
       >
         <X className="size-4" />
       </button>
@@ -62,7 +62,7 @@ export function AssignPicker({
       <div className="m-auto flex w-full max-w-2xl flex-col items-center">
         <div className="text-center">
           <div className="text-xl font-bold tracking-tight">Assign {what} to…</div>
-          <div className="mt-1.5 text-[13px] text-[#a0a0a8]">Pick a favorite, or search for someone else</div>
+          <div className="mt-1.5 text-[13px] text-overlay-muted">Pick a favorite, or search for someone else</div>
         </div>
 
         <div className="mt-6 flex w-full flex-wrap justify-center gap-3">
@@ -79,9 +79,9 @@ export function AssignPicker({
                 onBlur={() => setHover(null)}
                 className="box-border flex w-36 flex-col items-center gap-2 rounded-xl border px-3 py-4 text-center outline-none transition-[transform,box-shadow,background,border-color] duration-200"
                 style={{
-                  background: on ? TINT : '#17171a',
-                  borderColor: on ? GLOW : '#2e2e32',
-                  boxShadow: on ? `0 0 0 1px ${GLOW}, 0 0 32px ${GLOW}44` : 'none',
+                  background: on ? TINT : 'var(--overlay-surface)',
+                  borderColor: on ? GLOW : 'var(--overlay-line-soft)',
+                  boxShadow: on ? `0 0 0 1px ${GLOW}, 0 0 32px color-mix(in oklab, ${GLOW} 26.67%, transparent)` : 'none',
                   transform: on ? 'scale(1.05)' : 'scale(1)',
                 }}
               >
@@ -91,35 +91,35 @@ export function AssignPicker({
             )
           })}
           {favorites.length === 0 && (
-            <p className="max-w-sm text-center text-[13px] text-[#a0a0a8]">
+            <p className="max-w-sm text-center text-[13px] text-overlay-muted">
               No favorite yet. Add up to {MAX_FAVORITE_ASSIGNEES} people in Settings, under Favorite assignees, to find them here.
             </p>
           )}
         </div>
 
         <div className="mt-8 w-full max-w-sm">
-          <label className="flex items-center gap-2 rounded-xl border border-dashed border-[#4b4570] px-3 py-2 focus-within:border-[#c4b5fd]">
-            <Search className="size-4 shrink-0 text-[#a0a0a8]" />
+          <label className="flex items-center gap-2 rounded-xl border border-dashed border-[color:var(--zone-edit-line)] px-3 py-2 focus-within:border-[color:var(--zone-edit)]">
+            <Search className="size-4 shrink-0 text-overlay-muted" />
             <input
               autoFocus
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Someone else…"
               aria-label="Search a person"
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[#6f6f78]"
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-overlay-dim"
             />
           </label>
 
           {searching && (
-            <div className="mt-2 max-h-56 overflow-auto rounded-xl border border-[#2e2e32] bg-[#17171a]">
+            <div className="mt-2 max-h-56 overflow-auto rounded-xl border border-overlay-line-soft bg-overlay-surface">
               {waiting && !users ? (
                 <div className="flex justify-center p-3">
                   <Spinner className="size-4" />
                 </div>
               ) : error ? (
-                <p className="p-3 text-sm text-red-400">{error.message}</p>
+                <p className="p-3 text-sm text-overlay-error">{error.message}</p>
               ) : users?.length === 0 ? (
-                <p className="p-3 text-sm text-[#a0a0a8]">
+                <p className="p-3 text-sm text-overlay-muted">
                   No one found who can be assigned in {projectKeys.length > 1 ? 'all these projects' : projectKeys[0]}.
                 </p>
               ) : (
@@ -129,7 +129,7 @@ export function AssignPicker({
                       <button
                         type="button"
                         onClick={() => onPick(user)}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-white/10 focus-visible:bg-white/10 focus-visible:outline-none"
+                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-overlay-hover focus-visible:bg-overlay-hover focus-visible:outline-none"
                       >
                         <Avatar user={user} className="size-5" />
                         <span className="truncate">{user.displayName}</span>

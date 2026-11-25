@@ -8,7 +8,7 @@ import { initTheme } from './lib/theme.ts'
 async function start() {
   // The saved state is read from disk first. App is imported only after that, because its stores read it as they load.
   await loadStorage().catch((error) => console.error('Could not load the saved state', error))
-  initTheme()
+  await initTheme()
   const { default: App } = await import('./App.tsx')
 
   const queryClient = new QueryClient()

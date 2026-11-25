@@ -20,7 +20,7 @@ export function TimerChip({ active, onOpen }: { active: boolean; onOpen: () => v
   const label = running > 0 ? `${plural(running)} running` : all.length > 0 ? `${plural(all.length)} paused` : 'Timers'
 
   return (
-    <div className={cn('flex items-stretch border-t text-xs', running > 0 && 'bg-red-500/10', active && 'bg-accent')}>
+    <div className={cn('flex items-stretch border-t text-xs', running > 0 && 'bg-alert-bg', active && 'bg-accent')}>
       <button
         onClick={onOpen}
         aria-current={active ? 'page' : undefined}
@@ -28,9 +28,14 @@ export function TimerChip({ active, onOpen }: { active: boolean; onOpen: () => v
         className="flex min-w-0 flex-1 items-center gap-2 px-4 py-2 text-left hover:bg-accent"
       >
         {running > 0 ? <RecordingDot label="Timers running" /> : <TimerIcon className="size-3.5 text-muted-foreground" />}
-        <span className={cn('truncate font-medium', running > 0 && 'text-red-600 dark:text-red-400')}>{label}</span>
+        <span className={cn('truncate font-medium', running > 0 && 'text-alert')}>{label}</span>
         {all.length > 0 && (
-          <span className="ml-auto shrink-0 tabular-nums text-muted-foreground" title="Total across all timers">
+          <span
+            data-part="clock"
+            data-running={running > 0}
+            className="ml-auto shrink-0 tabular-nums text-muted-foreground"
+            title="Total across all timers"
+          >
             {formatClock(total)}
           </span>
         )}
@@ -40,7 +45,7 @@ export function TimerChip({ active, onOpen }: { active: boolean; onOpen: () => v
           onClick={pauseAll}
           title="Stop all running timers (the time is kept)"
           aria-label="Stop all running timers"
-          className="flex items-center px-3 text-red-600 hover:bg-red-500/15 dark:text-red-400"
+          className="flex items-center px-3 text-alert hover:bg-alert-bg-hover"
         >
           <Square className="size-3.5 fill-current" />
         </button>

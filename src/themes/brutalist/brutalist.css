@@ -1,0 +1,131 @@
+/*
+ * Neo-brutalist: a cream page, thick black outlines, hard offset shadows, flat bright colours and square corners. Built
+ * on the light theme (the app sets no `.dark` for it), so it only says what is different. The values are those of the
+ * brief (tracket-themes-brief.md, sections 4.4 and 5.4). A fun theme is not held to the contrast rules of the
+ * standard ones.
+ *
+ * `:root[data-theme]` rather than `[data-theme]` alone, to be as specific as the rules of the base it sits on.
+ */
+:root[data-theme='brutalist'] {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+
+  /* The shadcn tokens: surfaces, text, lines */
+  --background: #fff8e1;
+  --bar: #ffd23f;
+  --foreground: #111111;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --primary: #ff6b9d;
+  --primary-foreground: #000000;
+  --secondary: #fffdf5;
+  --secondary-foreground: #111111;
+  --muted: #fffdf5;
+  --muted-foreground: #3d3d3d;
+  --accent: #ffd23f;
+  --accent-foreground: #000000;
+  --destructive: #d6001c;
+  --border: #111111;
+  --input: #111111;
+  --ring: #000000;
+  --sidebar: #fffdf5;
+  --sidebar-foreground: #111111;
+  --sidebar-primary: #ff6b9d;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: #ffd23f;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #111111;
+  --sidebar-ring: #000000;
+  --radius: 0px;
+
+  /* A timer that runs: a red tint with dark red text and a black line (the pill of the title bar is black, below) */
+  --alert: #c4001a;
+  --alert-dot: #ff3b30;
+  --alert-bg: #ffd9d6;
+  --alert-bg-hover: #ffc8c3;
+  --alert-line: #111111;
+  --alert-line-strong: #111111;
+  --notch-bg: #111111;
+  --notch-fg: #ffffff;
+  --notch-line: #111111;
+
+  /* Status: flat colours, each with the black outline (see the chip below) */
+  --chip-active-bg: #4d9dff;
+  --chip-active-fg: #000000;
+  --chip-done-bg: #3ddc84;
+  --chip-done-fg: #000000;
+  --action: #1456d9;
+  --close: #ff3b30;
+  --kind-open: #ffffff;
+  --kind-open-glow: #111111;
+  --kind-open-tint: #ffffff;
+  --kind-open-bar: #ffffff;
+  --kind-active: #4d9dff;
+  --kind-active-glow: #4d9dff;
+  --kind-active-tint: #dbeaff;
+  --kind-resolved: #3ddc84;
+  --kind-resolved-glow: #3ddc84;
+  --kind-resolved-tint: #dff7e8;
+  --kind-closed: #1b8a3a;
+  --kind-closed-glow: #1b8a3a;
+  --kind-closed-tint: #cdebd6;
+
+  /* The glass over the list: the cream of the page, not dark */
+  --overlay-bg: rgb(255 248 225 / 0.95);
+  --overlay-fg: #111111;
+  --overlay-muted: #3d3d3d;
+  --overlay-dim: #6b6b6b;
+  --overlay-dashed: #111111;
+  --overlay-line: #111111;
+  --overlay-line-soft: #111111;
+  --overlay-surface: #ffffff;
+  --overlay-hover: rgb(255 210 63 / 0.5);
+  --overlay-error: #d6001c;
+  --zone-edit: #b794f6;
+  --zone-edit-tint: #efe6ff;
+  --zone-edit-line: #111111;
+  --zone-assign: #3ddc84;
+  --zone-assign-tint: #e1f9ea;
+  --zone-assign-line: #111111;
+  --zone-unassign: #ff9f1c;
+  --zone-unassign-tint: #ffefd1;
+  --zone-unassign-line: #111111;
+
+  /* The effects: the thickness of the borders, and nothing else */
+  --fx-border-width: 2px;
+}
+
+/* Bare `rounded` and `rounded-full` are fixed sizes in Tailwind, so they don't follow --radius: everything is square */
+:root[data-theme='brutalist'] .rounded,
+:root[data-theme='brutalist'] .rounded-full {
+  border-radius: 0;
+}
+
+/* Hard shadows, thick lines: the cards and the columns of the board, the cells of a ticket, the chips */
+:root[data-theme='brutalist'] [data-part='card'] {
+  border-width: 3px;
+  box-shadow: 4px 4px 0 #111111;
+}
+:root[data-theme='brutalist'] [data-part='column'] {
+  border: 3px solid #111111;
+  background: #fffdf5;
+  box-shadow: 6px 6px 0 #111111;
+}
+:root[data-theme='brutalist'] [data-part='cell'] {
+  padding: 0.375rem 0.5rem;
+  border: 2px solid #111111;
+  background: #ffffff;
+  box-shadow: 3px 3px 0 #111111;
+}
+:root[data-theme='brutalist'] [data-part='chip'] {
+  border: 2px solid #111111;
+  box-shadow: 2px 2px 0 #111111;
+}
+
+/* The scrollbars: wide, white track, pink thumb */
+:root[data-theme='brutalist'] * {
+  scrollbar-width: auto;
+  scrollbar-color: #ff6b9d #fffdf5;
+}

@@ -36,7 +36,7 @@ function ControlButton({
       onClick={onClick}
       className={cn(
         'flex h-full w-11.5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground',
-        danger ? 'hover:bg-red-600 hover:text-white' : 'hover:bg-accent',
+        danger ? 'hover:bg-close hover:text-close-fg' : 'hover:bg-accent',
       )}
     >
       {children}
@@ -69,15 +69,16 @@ export function TitleBar() {
 
   return (
     <div
+      data-part="titlebar"
       data-tauri-drag-region
-      className="relative flex h-9 shrink-0 select-none items-center border-b bg-background text-foreground"
+      className="relative flex h-9 shrink-0 select-none items-center border-b bg-bar text-foreground"
     >
       <div data-tauri-drag-region className="flex items-center gap-2 pl-3.5">
         {/* Children of the drag region are not draggable unless they say so */}
         <span data-tauri-drag-region className="pointer-events-none flex items-center">
           <Mark />
         </span>
-        <span data-tauri-drag-region className="pointer-events-none text-xs font-medium text-muted-foreground">
+        <span data-part="brand" data-tauri-drag-region className="pointer-events-none text-xs font-medium text-muted-foreground">
           {title}
         </span>
       </div>

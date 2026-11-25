@@ -1,0 +1,196 @@
+/*
+ * Neon cyberpunk: a near-black violet, cyan and magenta light, corners cut at an angle, scanlines. Built on the dark
+ * theme (`.dark` is set by the app, see lib/theme.ts), so it only says what is different. The values are those of the
+ * brief (tracket-themes-brief.md, sections 4.6 and 5.2). A fun theme is not held to the contrast rules of the standard
+ * ones.
+ *
+ * `:root[data-theme]` rather than `[data-theme]` alone: it has to win over `.dark`, which is as specific as the latter.
+ */
+:root[data-theme='neon'] {
+  font-family: 'Rajdhani', system-ui, sans-serif;
+  --font-mono: 'Share Tech Mono', ui-monospace, monospace;
+  /* How much of a corner is cut */
+  --neon-cut: 10px;
+
+  /* The shadcn tokens: surfaces, text, lines */
+  --background: #07060f;
+  --bar: #09070f;
+  --foreground: #e8e6ff;
+  --card: #141028;
+  --card-foreground: #e8e6ff;
+  --popover: #110e22;
+  --popover-foreground: #ffffff;
+  --primary: #00f0ff;
+  --primary-foreground: #06040f;
+  --secondary: #110e22;
+  --secondary-foreground: #e8e6ff;
+  --muted: #0e0b1c;
+  --muted-foreground: #a9a4d6;
+  --accent: #14213d;
+  --accent-foreground: #ffffff;
+  --destructive: #ff5a5f;
+  --border: #2a2452;
+  --input: #2a2452;
+  --ring: #00f0ff;
+  --sidebar: #0c0a18;
+  --sidebar-foreground: #e8e6ff;
+  --sidebar-primary: #00f0ff;
+  --sidebar-primary-foreground: #06040f;
+  --sidebar-accent: #14213d;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2a2452;
+  --sidebar-ring: #00f0ff;
+  --radius: 0px;
+
+  /* A timer that runs: hot pink on a nearly black red, with a glow in the pill */
+  --alert: #ff8aa0;
+  --alert-dot: #ff2b5e;
+  --alert-bg: #1a0510;
+  --alert-bg-hover: #26081a;
+  --alert-line: #ff2b5e;
+  --alert-line-strong: #ff2b5e;
+  --notch-bg: #1a0510;
+  --notch-fg: #ff8aa0;
+  --notch-line: #ff2b5e;
+
+  /* Status: an active ticket is cyan, a ticket in review would be magenta */
+  --chip-active-bg: #00e5ff;
+  --chip-active-fg: #04121a;
+  --chip-done-bg: #39ff88;
+  --chip-done-fg: #04210b;
+  --action: #00f0ff;
+  --close: #ff2b5e;
+  --kind-open: #b4afdc;
+  --kind-open-glow: #e6e2ff;
+  --kind-open-tint: #262148;
+  --kind-open-bar: #2a2650;
+  --kind-active: #00e5ff;
+  --kind-active-glow: #00e5ff;
+  --kind-active-tint: #052a33;
+  --kind-resolved: #39ff88;
+  --kind-resolved-glow: #39ff88;
+  --kind-resolved-tint: #07331b;
+  --kind-closed: #12a35c;
+  --kind-closed-glow: #12a35c;
+  --kind-closed-tint: #082a1a;
+
+  /* The glass over the list: the same violet black */
+  --overlay-bg: rgb(7 6 15 / 0.94);
+  --overlay-fg: #e8e6ff;
+  --overlay-muted: #a9a4d6;
+  --overlay-dim: #6e68a8;
+  --overlay-dashed: #e8e6ff;
+  --overlay-line: #3a3366;
+  --overlay-line-soft: #2a2452;
+  --overlay-surface: #110e22;
+  --overlay-hover: rgb(0 240 255 / 0.1);
+  --overlay-error: #ff5a5f;
+
+  /* The effects (see the `fx` section of index.css) */
+  --fx-title-transform: uppercase;
+  --fx-title-shadow:
+    2px 0 rgb(255 43 214 / 0.7),
+    -2px 0 rgb(0 240 255 / 0.7),
+    0 0 20px rgb(0 240 255 / 0.3);
+  --fx-section-color: #ff2bd6;
+  /* The selected ticket: a wash of cyan from its left edge, and a bar there */
+  --fx-sel-image: linear-gradient(90deg, rgb(0 240 255 / 0.2), rgb(0 240 255 / 0.02));
+  --fx-sel-shadow: inset 3px 0 0 #00f0ff;
+  /* Fine lines over the whole window */
+  --fx-overlay-content: '';
+  --fx-overlay: repeating-linear-gradient(0deg, rgb(255 255 255 / 0.028) 0 1px, transparent 1px 3px);
+  /* A grid of 36px, and a magenta glow in a corner: behind the board and behind the ticket */
+  --fx-board-bg:
+    linear-gradient(rgb(0 240 255 / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(0 240 255 / 0.04) 1px, transparent 1px),
+    radial-gradient(600px 400px at 100% 0%, rgb(255 43 214 / 0.12), transparent 60%);
+  --fx-board-size: 36px 36px, 36px 36px, auto;
+  --fx-detail-bg:
+    linear-gradient(rgb(0 240 255 / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(0 240 255 / 0.04) 1px, transparent 1px),
+    radial-gradient(600px 400px at 100% 0%, rgb(255 43 214 / 0.12), transparent 60%);
+  --fx-detail-size: 36px 36px, 36px 36px, auto;
+}
+
+/* Bare `rounded` is a fixed size in Tailwind, so it doesn't follow --radius: the corners are cut, not round */
+:root[data-theme='neon'] .rounded {
+  border-radius: 0;
+}
+
+/*
+ * Cut corners: the top right and the bottom left of the cards, columns and cells of a ticket. A clip-path also clips the
+ * border where it cuts, so the cut gets its own thin line, drawn by two gradients in a corner box of its own
+ * (`::after`). Glows can't go outside such a shape (they are clipped too): the ones that are here are inside.
+ */
+:root[data-theme='neon'] [data-part='card'],
+:root[data-theme='neon'] [data-part='column'],
+:root[data-theme='neon'] [data-part='cell'] {
+  position: relative;
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--neon-cut)) 0,
+    100% var(--neon-cut),
+    100% 100%,
+    var(--neon-cut) 100%,
+    0 calc(100% - var(--neon-cut))
+  );
+}
+:root[data-theme='neon'] [data-part='card']::after,
+:root[data-theme='neon'] [data-part='column']::after,
+:root[data-theme='neon'] [data-part='cell']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom left, transparent 50%, #3a3366 50% calc(50% + 1.5px), transparent calc(50% + 1.5px)) top right /
+      var(--neon-cut) var(--neon-cut) no-repeat,
+    linear-gradient(to top right, transparent 50%, #3a3366 50% calc(50% + 1.5px), transparent calc(50% + 1.5px)) bottom left /
+      var(--neon-cut) var(--neon-cut) no-repeat;
+}
+:root[data-theme='neon'] [data-part='column'] {
+  background: #0e0b1c;
+  border: 1px solid #2a2452;
+  box-shadow: inset 0 0 18px rgb(0 240 255 / 0.04);
+}
+:root[data-theme='neon'] [data-part='card'] {
+  box-shadow: inset 0 0 14px rgb(0 240 255 / 0.05);
+}
+:root[data-theme='neon'] [data-part='cell'] {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #2a2452;
+  background: rgb(0 240 255 / 0.05);
+}
+:root[data-theme='neon'] [data-part='group-title'] {
+  background: #09070f;
+}
+
+/* Slanted chips, hexagonal avatars */
+:root[data-theme='neon'] [data-part='chip'] {
+  padding-inline: 0.625rem;
+  clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+}
+:root[data-theme='neon'] img.rounded-full {
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+
+/* The timer: digits in a display face, and a glow around the pill (it isn't clipped, so its glow can show) */
+:root[data-theme='neon'] [data-part='clock'],
+:root[data-theme='neon'] .tree-pct {
+  font-family: 'Orbitron', ui-monospace, monospace;
+  font-weight: 700;
+}
+:root[data-theme='neon'] .timer-pill {
+  border-radius: 0;
+  box-shadow: 0 0 14px rgb(255 43 94 / 0.55);
+}
+/* The segments of the progress bar glow */
+:root[data-theme='neon'] .tree-bar {
+  filter: drop-shadow(0 0 4px rgb(0 229 255 / 0.4));
+}
+
+/* The options of the theme (see `options` in lib/themes.ts): a layer with no content isn't there at all */
+:root[data-theme='neon'][data-opt-scanlines='off'] {
+  --fx-overlay-content: none;
+}

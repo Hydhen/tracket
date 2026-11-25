@@ -103,6 +103,8 @@ function TreeNode({
       >
         <div
           {...row.dragProps}
+          data-part="row"
+          data-selected={issue.key === ctx.selectedKey || undefined}
           className={cn(
             'group relative flex select-none items-center gap-1 border-l-2 border-l-transparent py-1.5 pr-2 hover:bg-accent',
             issue.key === ctx.selectedKey && 'bg-accent',
@@ -272,7 +274,7 @@ export function IssueTree({
   }
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div data-part="list" className="flex-1 overflow-auto">
       <ul role="tree">
         {roots.map((key) => {
           const issue = rootIssues.find((i) => i.key === key)

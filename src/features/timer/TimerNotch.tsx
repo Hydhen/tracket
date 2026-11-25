@@ -26,8 +26,10 @@ export function TimerNotch() {
         {/* Children of the drag region are not draggable unless they say so */}
         <span data-tauri-drag-region className="pointer-events-none flex items-center gap-2" role="status" aria-live="off">
           <RecordingDot label={count > 1 ? `${count} timers running` : 'Timer running'} />
-          <span className="text-xs font-medium tabular-nums">{formatClock(ms)}</span>
-          {count > 1 && <span className="text-[0.6875rem] text-white/60">×{count}</span>}
+          <span data-part="clock" className="text-xs font-medium tabular-nums">
+            {formatClock(ms)}
+          </span>
+          {count > 1 && <span className="text-[0.6875rem] text-notch-muted">×{count}</span>}
         </span>
         <button
           type="button"

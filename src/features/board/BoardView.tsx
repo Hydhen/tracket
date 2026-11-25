@@ -68,6 +68,7 @@ function BoardCard({
   return (
     <li className={cn('group relative select-none', row.dragging && 'opacity-45')} {...row.dragProps}>
       <button
+        data-part="card"
         // Ctrl/Cmd+click picks several tickets to take together
         onClick={(e) => row.handleModifierClick(e, () => onOpen(issue)) || onOpen(issue)}
         className={cn(
@@ -153,7 +154,7 @@ function BoardColumnView({
   }
 
   return (
-    <section className="flex min-h-0 w-72 shrink-0 flex-col rounded-lg bg-muted/40">
+    <section data-part="column" className="flex min-h-0 w-72 shrink-0 flex-col rounded-lg bg-muted/40">
       <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         <button
           onClick={onToggle}
@@ -162,7 +163,7 @@ function BoardColumnView({
           className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-left uppercase hover:bg-accent hover:text-foreground"
         >
           <ChevronDown className="size-3.5 shrink-0" />
-          <span className="truncate">{column.name}</span>
+          <span data-part="column-title" className="truncate">{column.name}</span>
           <span className="font-normal">{column.issues.length}</span>
         </button>
       </h2>
@@ -323,7 +324,7 @@ export function BoardView({
   }
 
   return (
-    <div className="flex h-full min-w-0 flex-col">
+    <div data-part="board" className="flex h-full min-w-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
         <SourcePicker
           options={options}
