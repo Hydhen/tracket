@@ -606,6 +606,12 @@ body {
 [data-part='section-label'] {
   color: var(--fx-section-color, var(--muted-foreground));
 }
+[data-part='section-label']::before {
+  content: var(--fx-section-before, none);
+}
+[data-part='sidebar'] {
+  background-image: var(--fx-sidebar-bg, none);
+}
 /* A layer over the whole window, that lets everything through (scanlines, a vignette) */
 :root::after {
   content: var(--fx-overlay-content, none);

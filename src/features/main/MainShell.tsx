@@ -254,7 +254,7 @@ export function MainShell({ session }: { session: Session }) {
     <TicketActionsContext.Provider value={{ openInSide: (key) => openByKey(key, true), linkRepo: openSettings }}>
     <TicketMovesContext.Provider value={moves}>
       <div className="flex h-full bg-background text-foreground">
-        <aside className="flex w-96 flex-col border-r">
+        <aside data-part="sidebar" className="flex w-96 flex-col border-r">
           <button
             onClick={() => setPalette('open')}
             className="flex h-[45px] items-center gap-2 border-b px-4 text-left text-sm text-muted-foreground hover:bg-accent"
