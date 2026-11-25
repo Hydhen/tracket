@@ -267,6 +267,16 @@ export type SprocketRunState = 'running' | 'waiting' | 'passed' | 'failed' | 'ca
 export type SprocketJobState = 'running' | 'waiting' | 'done' | 'failed' | 'rejected' | 'stopped' | 'interrupted'
 
 /** A run as Sprocket describes it; only what the ticket view shows */
+/** A step of a Sprocket workflow; a condition holds its branches and a loop its steps. */
+export interface SprocketStep {
+  id: string
+  kind: 'agent' | 'approval' | 'action' | 'condition' | 'forEach'
+  agent: string | null
+  then?: SprocketStep[]
+  else?: SprocketStep[]
+  steps?: SprocketStep[]
+}
+
 export interface SprocketRun {
   id: string
   workflowName: string
@@ -274,10 +284,14 @@ export interface SprocketRun {
   startedBy: string
   state: SprocketRunState
   startedAt: string
-  steps: { id: string; kind: 'agent' | 'approval'; agent: string | null }[]
+  steps: SprocketStep[]
   jobs: { id: string; stepId: string; state: SprocketJobState; attempt: number }[]
   /** Pending only */
   approvals: { id: string; kind: 'gate' | 'tool'; jobId: string | null; summary: string; toolName: string | null }[]
+  /** Whether its workflow has a board (older Sprocket versions: absent) */
+  board?: boolean
+  /** The run's board, oldest first: notes by its agents (with their agent type) and by people */
+  notes?: { id: number; at: string; author: string; agent: string | null; to: string | null; body: string }[]
 }
 
 export class ApiError extends Error {
@@ -391,4 +405,6 @@ export const api = {
     call<SprocketRun>('sprocket_start_run', { run }),
   sprocketDecide: (id: string, approve: boolean, by: string, reason?: string) =>
     call<void>('sprocket_decide', { id, approve, by, reason: reason || null }),
+  sprocketPostNote: (runId: string, body: string, by: string, to?: string) =>
+    call<void>('sprocket_post_note', { runId, body, by, to: to || null }),
 }

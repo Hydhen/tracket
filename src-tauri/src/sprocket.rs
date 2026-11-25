@@ -247,6 +247,22 @@ pub async fn sprocket_decide(
     send(&http, &connection()?, Method::POST, &format!("/v1/approvals/{id}"), Some(body)).await.map(drop)
 }
 
+/// Posts a note on a run's board, for its agents (`to`: a step or an agent type; everyone when none).
+#[tauri::command]
+pub async fn sprocket_post_note(
+    http: tauri::State<'_, reqwest::Client>,
+    run_id: String,
+    body: String,
+    to: Option<String>,
+    by: String,
+) -> Result<()> {
+    if run_id.is_empty() || !run_id.chars().all(|c| c.is_ascii_alphanumeric()) {
+        return Err(AppError::new("invalidQuery", "Invalid run"));
+    }
+    let note = json!({ "body": body, "to": to, "by": by });
+    send(&http, &connection()?, Method::POST, &format!("/v1/runs/{run_id}/notes"), Some(note)).await.map(drop)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{check, normalize_address, send};

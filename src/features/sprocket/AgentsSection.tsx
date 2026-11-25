@@ -3,9 +3,10 @@ import { Fragment, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useSession } from '@/features/auth/useSession'
-import { api, type ApiError, type IssueSummary, type SprocketJobState, type SprocketRun } from '@/lib/api'
+import { api, type ApiError, type IssueSummary, type SprocketJobState, type SprocketRun, type SprocketStep } from '@/lib/api'
 import { timeAgo } from '@/lib/dates'
 import { AgentsMenu } from './AgentsMenu'
+import { RunBoard } from './RunBoard'
 import { useTicketRuns } from './useSprocket'
 
 type StepState = SprocketJobState | 'pending'
@@ -52,6 +53,10 @@ function Dot({ state }: { state: StepState }) {
 
 const stepState = (run: SprocketRun, stepId: string): StepState => run.jobs.filter((j) => j.stepId === stepId).at(-1)?.state ?? 'pending'
 
+/** Every step, those inside conditions and loops too. */
+const allSteps = (steps: SprocketStep[]): SprocketStep[] =>
+  steps.flatMap((s) => [s, ...allSteps([...(s.then ?? []), ...(s.else ?? []), ...(s.steps ?? [])])])
+
 /** A step or tool call waiting for someone, with Approve and Reject… (which asks for a reason first). */
 function Waiting({ run, approval }: { run: SprocketRun; approval: SprocketRun['approvals'][number] }) {
   const queryClient = useQueryClient()
@@ -63,7 +68,7 @@ function Waiting({ run, approval }: { run: SprocketRun; approval: SprocketRun['a
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['sprocket-runs'] }),
   })
   const job = run.jobs.find((j) => j.id === approval.jobId)
-  const step = run.steps.find((s) => s.id === job?.stepId)
+  const step = allSteps(run.steps).find((s) => s.id === job?.stepId)
   const title =
     approval.kind === 'tool'
       ? `${step?.agent ?? 'An agent'} wants to use ${approval.toolName}`
@@ -186,7 +191,7 @@ export function AgentsSection({ issue, worktreeFolder }: { issue: IssueSummary; 
           ))}
 
           <div className="flex flex-wrap gap-x-3.5 gap-y-1.5 border-t px-3.5 py-2.5 text-xs text-muted-foreground">
-            {run.steps
+            {allSteps(run.steps)
               .filter((s) => s.agent)
               .map((s) => {
                 const state = stepState(run, s.id)
@@ -199,6 +204,7 @@ export function AgentsSection({ issue, worktreeFolder }: { issue: IssueSummary; 
                 )
               })}
           </div>
+          <RunBoard run={run} />
         </div>
       )}
     </section>

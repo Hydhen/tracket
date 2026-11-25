@@ -91,6 +91,7 @@ pub fn run() {
             sprocket::sprocket_runs,
             sprocket::sprocket_start_run,
             sprocket::sprocket_decide,
+            sprocket::sprocket_post_note,
             storage::storage_load,
             storage::storage_set,
             badge::set_timer_badge,
