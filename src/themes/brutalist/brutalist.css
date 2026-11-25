@@ -40,11 +40,11 @@
   --sidebar-ring: #000000;
   --radius: 0px;
 
-  /* A timer that runs: black, with a red light */
-  --alert: #ff3b30;
+  /* A timer that runs: a red tint with dark red text and a black line (the pill of the title bar is black, below) */
+  --alert: #c4001a;
   --alert-dot: #ff3b30;
-  --alert-bg: #111111;
-  --alert-bg-hover: #2a2a2a;
+  --alert-bg: #ffd9d6;
+  --alert-bg-hover: #ffc8c3;
   --alert-line: #111111;
   --alert-line-strong: #111111;
   --notch-bg: #111111;

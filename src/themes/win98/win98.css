@@ -234,6 +234,9 @@
   font-family: 'Courier New', monospace;
   font-weight: 700;
 }
+:root[data-theme='win98'] [data-part='clock'][data-running='true'] {
+  color: #ff4d4d;
+}
 :root[data-theme='win98'] a,
 :root[data-theme='win98'] .jira-html {
   --tw-prose-links: #0000ee;

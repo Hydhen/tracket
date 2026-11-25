@@ -601,6 +601,7 @@ body {
   background-size: var(--fx-board-size, auto);
 }
 [data-part='detail'] {
+  min-height: 100%;
   background-image: var(--fx-detail-bg, none);
   background-size: var(--fx-detail-size, auto);
 }
