@@ -4,7 +4,6 @@ import { ChevronDown, ChevronRight, Columns2, Plus, RefreshCw, Rows2, Search, Se
 import { useEffect, useState, type ReactNode } from 'react'
 import { useGroupRef } from 'react-resizable-panels'
 import { Spinner } from '@/components/Spinner'
-import { ThemeSelect } from '@/components/ThemeSelect'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Button } from '@/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
@@ -415,7 +414,6 @@ export function MainShell({ session }: { session: Session }) {
               <div className="truncate text-sm">{session.displayName}</div>
               <div className="truncate text-xs text-muted-foreground">{session.site.replace('https://', '')}</div>
             </div>
-            <ThemeSelect variant="icon" />
             <Button variant="ghost" size="icon" title="Settings" onClick={() => openSettings()}>
               <Settings className="size-4" />
             </Button>

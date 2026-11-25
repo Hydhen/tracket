@@ -11,6 +11,7 @@
 
   /* The shadcn tokens: surfaces, text, lines */
   --background: #020b04;
+  --bar: #031308;
   --foreground: #7dff9a;
   --card: #041109;
   --card-foreground: #7dff9a;
@@ -94,9 +95,110 @@
   --fx-chip-after: ']';
   /* The scanlines of a screen, and its darker corners */
   --fx-overlay-content: '';
-  --fx-overlay:
-    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.25) 0 1px, transparent 1px 3px),
-    radial-gradient(ellipse at center, transparent 60%, rgb(0 0 0 / 0.45) 100%);
+  --terminal-scanlines: repeating-linear-gradient(0deg, rgb(0 0 0 / 0.25) 0 1px, transparent 1px 3px);
+  --terminal-vignette: radial-gradient(ellipse at center, transparent 62%, rgb(0 0 0 / 0.32) 100%);
+  --fx-overlay: var(--terminal-scanlines), var(--terminal-vignette);
+  /* The glowing line that goes down the screen every so often. It isn't clean: a band of grain with a thin hot core
+     and tear lines across it, that flickers and wobbles in height, and whose edges fade out. The layers are listed
+     from the top: core, tear lines, grain, glow. */
+  --fx-sweep-content: '';
+  --fx-sweep-height: 170px;
+  /* How strong the line is at its brightest; the flicker dips below it */
+  --fx-sweep-opacity: 0.15;
+  --fx-sweep:
+    linear-gradient(to bottom, transparent 47%, rgb(190 255 210 / 0.5) 49.5% 50.5%, transparent 53%),
+    repeating-linear-gradient(to bottom, rgb(77 255 124 / 0.16) 0 1px, transparent 1px 5px),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n' x='0' y='0' width='100%25' height='100%25'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.3  0 0 0 0 1  0 0 0 0 0.45  1.8 0 0 0 -0.7'/></filter><rect width='220' height='220' filter='url(%23n)'/></svg>"),
+    linear-gradient(to bottom, rgb(77 255 124 / 0.05), rgb(77 255 124 / 0.16) 50%, rgb(77 255 124 / 0.05));
+  --fx-sweep-size: 100% 100%, 100% 100%, 220px 220px, 100% 100%;
+  --fx-sweep-mask: linear-gradient(to bottom, transparent, #000 35%, #000 65%, transparent);
+  /* The pass itself (one every 16 seconds), a flicker of its brightness and height, and its grain and tear lines crawling (they jump) */
+  --fx-sweep-animation:
+    terminal-sweep-pass 16s linear infinite,
+    terminal-sweep-flicker 1.7s steps(1) infinite,
+    terminal-sweep-grain 0.25s steps(1) infinite;
+
+  /* The edge of the screen. A frame: corners cut round, a dark falloff just inside the edge, a fringe of red on the
+     left and cyan on the right, and a thin glint of glass. And a softening that grows towards the edge (it is the
+     costly part: take it out with `none` if the window feels heavy). */
+  --fx-edge-content: '';
+  --fx-edge-radius: 10px;
+  --fx-edge-shadow:
+    0 0 0 40px #000,
+    inset 0 0 50px rgb(0 0 0 / 0.3),
+    inset 4px 0 8px -3px rgb(255 60 60 / 0.07),
+    inset -4px 0 8px -3px rgb(60 255 255 / 0.07),
+    inset 0 0 0 1px rgb(125 255 154 / 0.06);
+  --fx-edge-soft-content: '';
+  --fx-edge-soft: blur(0.8px);
+  --fx-edge-soft-mask: radial-gradient(ellipse at center, transparent 78%, #000 100%);
+}
+
+:root[data-theme='terminal'] body {
+  /* Nothing may stick out of the window, whatever the line does */
+  overflow-x: clip;
+}
+
+@keyframes terminal-sweep-flicker {
+  0% {
+    opacity: var(--fx-sweep-opacity);
+    height: var(--fx-sweep-height);
+  }
+  8% {
+    opacity: calc(var(--fx-sweep-opacity) * 0.7);
+    height: 150px;
+  }
+  12% {
+    opacity: var(--fx-sweep-opacity);
+    height: var(--fx-sweep-height);
+  }
+  31% {
+    opacity: calc(var(--fx-sweep-opacity) * 0.55);
+  }
+  33% {
+    opacity: calc(var(--fx-sweep-opacity) * 0.95);
+  }
+  64% {
+    opacity: calc(var(--fx-sweep-opacity) * 0.45);
+    height: 205px;
+  }
+  66% {
+    opacity: calc(var(--fx-sweep-opacity) * 0.9);
+    height: var(--fx-sweep-height);
+  }
+  83% {
+    opacity: calc(var(--fx-sweep-opacity) * 0.75);
+  }
+  85% {
+    opacity: var(--fx-sweep-opacity);
+  }
+}
+@keyframes terminal-sweep-grain {
+  0% {
+    background-position: 0 0, 0 0, 0 0, 0 0;
+  }
+  25% {
+    background-position: 0 0, 0 2px, 37px 21px, 0 0;
+  }
+  50% {
+    background-position: 0 0, 0 4px, -52px 33px, 0 0;
+  }
+  75% {
+    background-position: 0 0, 0 1px, 18px -44px, 0 0;
+  }
+}
+
+/*
+ * The options of the theme (see `options` in lib/themes.ts). One that is off is an attribute of the page; a layer with
+ * no content isn't there at all, so it costs nothing.
+ */
+:root[data-theme='terminal'][data-opt-sweep='off'] {
+  --fx-sweep-content: none;
+}
+:root[data-theme='terminal'][data-opt-vignette='off'] {
+  --fx-edge-content: none;
+  --fx-edge-soft-content: none;
+  --fx-overlay: var(--terminal-scanlines);
 }
 
 /* Bare `rounded` is a fixed size in Tailwind, so it doesn't follow --radius */
@@ -116,5 +218,18 @@
 @media (prefers-reduced-motion: reduce) {
   :root[data-theme='terminal'] [data-part='brand']::after {
     animation: none;
+  }
+}
+
+/* The line goes down the screen, then rests for the rest of its turn */
+@keyframes terminal-sweep-pass {
+  0% {
+    transform: translateY(-100%);
+  }
+  40% {
+    transform: translateY(100vh);
+  }
+  100% {
+    transform: translateY(100vh);
   }
 }

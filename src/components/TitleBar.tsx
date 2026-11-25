@@ -70,7 +70,7 @@ export function TitleBar() {
   return (
     <div
       data-tauri-drag-region
-      className="relative flex h-9 shrink-0 select-none items-center border-b bg-background text-foreground"
+      className="relative flex h-9 shrink-0 select-none items-center border-b bg-bar text-foreground"
     >
       <div data-tauri-drag-region className="flex items-center gap-2 pl-3.5">
         {/* Children of the drag region are not draggable unless they say so */}

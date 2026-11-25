@@ -2,4 +2,4 @@
 "tracket": minor
 ---
 
-A new Appearance page in the settings, and a first fun theme: Terminal, green on black in monospace with square corners. The theme button of the sidebar is now a menu, with System, Light, Dark and Terminal.
+A new Appearance page in the settings to choose the theme, with two fun themes besides System, Light and Dark: Terminal (green on black in monospace, with a moving line and CRT edges you can switch off) and Neo-brutalist (a cream page with thick black outlines and hard shadows).

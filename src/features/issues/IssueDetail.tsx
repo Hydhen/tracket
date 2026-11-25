@@ -66,7 +66,7 @@ const LIST_QUERIES = ['issues', 'search', 'tree-roots', 'children', BOARD_ISSUES
 
 function Field({ label, wide = false, children }: { label: string; wide?: boolean; children: ReactNode }) {
   return (
-    <div className={cn('min-w-0', wide && 'col-span-full')}>
+    <div data-part="cell" className={cn('min-w-0', wide && 'col-span-full')}>
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="mt-0.5 text-sm">{children}</dd>
     </div>

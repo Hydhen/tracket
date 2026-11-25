@@ -49,6 +49,7 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 
     /* The tokens below (defined further down) as colours, so that classes can use them: bg-alert-bg, text-kind-open… */
+    --color-bar: var(--bar);
     --color-alert: var(--alert);
     --color-alert-dot: var(--alert-dot);
     --color-alert-bg: var(--alert-bg);
@@ -119,6 +120,9 @@
      * What the app says beyond the shadcn tokens: the values of today's look, in one place, so that a theme can
      * change them. Where light and dark differ, .dark below says how.
      */
+
+    /* The title bar: the background of the page, unless a theme gives it a colour of its own */
+    --bar: var(--background);
 
     /* A timer that runs: text, the recording dot, the tinted background, and the lines around it */
     --alert: oklch(57.7% 0.245 27.325);
@@ -589,6 +593,83 @@ body {
   z-index: 2147483647;
   pointer-events: none;
   background: var(--fx-overlay, none);
+}
+/* A band of light that goes down the window again and again, like the line of an old screen being redrawn */
+:root::before {
+  content: var(--fx-sweep-content, none);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--fx-sweep-height, 0);
+  z-index: 2147483646;
+  pointer-events: none;
+  background: var(--fx-sweep, none);
+  background-size: var(--fx-sweep-size, auto);
+  /* What fades the band out at its edges, if the theme wants it */
+  mask-image: var(--fx-sweep-mask, none);
+  animation: var(--fx-sweep-animation, none);
+  will-change: transform;
+}
+@keyframes fx-sweep {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(100vh);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root::before {
+    animation: none;
+    display: none;
+  }
+}
+/* The edge of a screen. Two layers over the window: a frame (rounded corners that cut it off, a falloff of dark and of
+   colour just inside its edge), and a softening of the picture that grows towards the edge */
+body::after {
+  content: var(--fx-edge-content, none);
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  border-radius: var(--fx-edge-radius, 0);
+  box-shadow: var(--fx-edge-shadow, none);
+}
+body::before {
+  content: var(--fx-edge-soft-content, none);
+  position: fixed;
+  inset: 0;
+  z-index: 2147483644;
+  pointer-events: none;
+  backdrop-filter: var(--fx-edge-soft, none);
+  mask-image: var(--fx-edge-soft-mask, none);
+}
+
+/*
+ * The width of the borders. Tailwind's `border` classes are 1px whatever the theme, so a theme that wants them thicker
+ * sets `--fx-border-width` and the classes follow it (only while a theme is on, and at 1px when it doesn't say).
+ */
+:root[data-theme] .border {
+  border-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-t {
+  border-top-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-b {
+  border-bottom-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-l {
+  border-left-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-r {
+  border-right-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-x {
+  border-inline-width: var(--fx-border-width, 1px);
+}
+:root[data-theme] .border-y {
+  border-block-width: var(--fx-border-width, 1px);
 }
 
 /*

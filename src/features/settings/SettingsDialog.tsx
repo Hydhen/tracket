@@ -97,7 +97,7 @@ export function SettingsDialog({
   linkProject?: string
   site?: string
 }) {
-  const [category, setCategory] = useState<Category>(linkProject ? 'quickstart' : 'details')
+  const [category, setCategory] = useState<Category>(linkProject ? 'quickstart' : CATEGORIES[0].id)
   const tabs = useRef<Record<string, HTMLButtonElement | null>>({})
 
   useEffect(() => {

@@ -68,6 +68,7 @@ function BoardCard({
   return (
     <li className={cn('group relative select-none', row.dragging && 'opacity-45')} {...row.dragProps}>
       <button
+        data-part="card"
         // Ctrl/Cmd+click picks several tickets to take together
         onClick={(e) => row.handleModifierClick(e, () => onOpen(issue)) || onOpen(issue)}
         className={cn(
@@ -153,7 +154,7 @@ function BoardColumnView({
   }
 
   return (
-    <section className="flex min-h-0 w-72 shrink-0 flex-col rounded-lg bg-muted/40">
+    <section data-part="column" className="flex min-h-0 w-72 shrink-0 flex-col rounded-lg bg-muted/40">
       <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         <button
           onClick={onToggle}

@@ -6,6 +6,7 @@ import { themeDef, type ThemeId } from '@/lib/themes'
  * The standard themes need nothing, they are in index.css.
  */
 const LOADERS: Partial<Record<ThemeId, () => Promise<unknown>>> = {
+  brutalist: () => import('./brutalist'),
   terminal: () => import('./terminal'),
 }
 

@@ -1,12 +1,13 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { appStorage } from './storage'
 import { loadTheme } from '@/themes'
-import { DEFAULT_THEME, isThemeId, themeDef, type ThemeId } from './themes'
+import { DEFAULT_THEME, THEMES, isThemeId, themeDef, type ThemeId, type ThemeOption } from './themes'
 
 /** What is saved, and what the picker sets: one of the themes of `themes.ts` (System, Light, Dark or a fun one) */
 export type ThemePreference = ThemeId
 
 const STORAGE_KEY = 'tracket-theme'
+const OPTIONS_KEY = 'tracket-theme-options'
 const systemDark = window.matchMedia('(prefers-color-scheme: dark)')
 
 export function getThemePreference(): ThemePreference {
@@ -18,6 +19,55 @@ export function getThemePreference(): ThemePreference {
     // storage unavailable: fall back to the system theme
   }
   return DEFAULT_THEME
+}
+
+// What the interface shows of the theme (the picker, the options) reads it here, and is told when it changes
+const listeners = new Set<() => void>()
+const emit = () => listeners.forEach((listener) => listener())
+export function subscribeTheme(listener: () => void) {
+  listeners.add(listener)
+  return () => void listeners.delete(listener)
+}
+
+type SavedOptions = Partial<Record<string, Partial<Record<string, boolean>>>>
+
+function readOptions(): SavedOptions {
+  try {
+    const raw = appStorage.getItem(OPTIONS_KEY)
+    const parsed: unknown = raw ? JSON.parse(raw) : {}
+    return parsed && typeof parsed === 'object' ? (parsed as SavedOptions) : {}
+  } catch {
+    return {}
+  }
+}
+
+/** Whether an option of a theme is on: what was chosen, or what the theme says when nothing was */
+export function getThemeOption(theme: ThemeId, option: ThemeOption): boolean {
+  const saved = readOptions()[theme]?.[option.id]
+  return typeof saved === 'boolean' ? saved : option.default
+}
+
+export function setThemeOption(theme: ThemeId, option: ThemeOption, on: boolean) {
+  const all = readOptions()
+  try {
+    appStorage.setItem(OPTIONS_KEY, JSON.stringify({ ...all, [theme]: { ...all[theme], [option.id]: on } }))
+  } catch {
+    // the choice still applies for this session
+  }
+  applyOptions(theme)
+  emit()
+}
+
+/** The options of the theme in use are attributes of the page, `data-opt-<id>="off"` for the ones that are off */
+function applyOptions(theme: ThemeId) {
+  const root = document.documentElement
+  for (const other of THEMES) {
+    for (const option of themeDef(other.id).options ?? []) {
+      const off = other.id === theme && !getThemeOption(other.id, option)
+      if (off) root.setAttribute(`data-opt-${option.id}`, 'off')
+      else root.removeAttribute(`data-opt-${option.id}`)
+    }
+  }
 }
 
 const inTauri = '__TAURI_INTERNALS__' in window
@@ -57,7 +107,9 @@ async function apply() {
   root.classList.toggle('dark', dark)
   if (theme.group === 'fun') root.dataset.theme = theme.id
   else delete root.dataset.theme
+  applyOptions(preference)
   syncNativeTheme(theme.scheme)
+  emit()
 }
 
 export function setThemePreference(preference: ThemePreference) {
@@ -67,6 +119,7 @@ export function setThemePreference(preference: ThemePreference) {
   } catch {
     // the choice still applies for this session
   }
+  emit()
   void apply()
 }
 
