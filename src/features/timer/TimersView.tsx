@@ -58,6 +58,8 @@ function TimerRow({
       </button>
 
       <span
+        data-part="clock"
+        data-running={running}
         className={cn(
           'shrink-0 text-sm font-medium tabular-nums',
           running ? 'text-alert' : 'text-muted-foreground',

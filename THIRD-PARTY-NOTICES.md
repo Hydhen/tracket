@@ -31,6 +31,9 @@ Terminal theme, and is only loaded when that theme is chosen.
 **Space Grotesk** and **Space Mono**, via `@fontsource/space-grotesk` and `@fontsource/space-mono`, under the SIL Open
 Font License 1.1. They are the fonts of the Neo-brutalist theme, and are only loaded when that theme is chosen.
 
+**Chakra Petch** and **B612 Mono**, via `@fontsource/chakra-petch` and `@fontsource/b612-mono`, under the SIL Open Font
+License 1.1. They are the fonts of the Mission control theme, and are only loaded when that theme is chosen.
+
 The website has its own repository, [Hydhen/tracket-site](https://github.com/Hydhen/tracket-site), with its own
 notices. Nothing from it is part of this repository or of the application.
 

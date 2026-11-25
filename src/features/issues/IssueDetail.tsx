@@ -98,7 +98,11 @@ function mediaKind(mimeType: string): 'image' | 'video' | null {
 }
 
 function SectionTitle({ children }: { children: ReactNode }) {
-  return <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">{children}</h2>
+  return (
+    <h2 data-part="section-label" className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      {children}
+    </h2>
+  )
 }
 
 export function IssueDetail({
@@ -342,7 +346,7 @@ export function IssueDetail({
 
   return (
     // The padding is here rather than on the pane that scrolls: a row that sticks at the top then sticks flush with it
-    <div className="px-6 pb-16 pt-4">
+    <div data-part="detail" className="px-6 pb-16 pt-4">
       <div className="mx-auto max-w-3xl">
         {/*
           Stays at the top while the ticket scrolls, on one row: the key, the title once the big one has scrolled away
@@ -541,7 +545,9 @@ export function IssueDetail({
           <>
             <section className="group/description mt-8">
               <div className="mb-2 flex items-center gap-1">
-                <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Description</h2>
+                <h2 data-part="section-label" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Description
+                </h2>
                 {!editingDescription && (
                   <button
                     onClick={() => setEditingDescription(true)}

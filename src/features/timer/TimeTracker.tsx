@@ -107,6 +107,8 @@ export function TimeTracker({ issueKey }: { issueKey: string }) {
           <div className="flex h-7 items-center gap-2">
             <TimerIcon className={cn('size-4 text-muted-foreground', running && 'text-alert')} />
             <span
+              data-part="clock"
+              data-running={running}
               className={cn(
                 'min-w-[4.5rem] text-sm font-medium tabular-nums',
                 running && 'text-alert',

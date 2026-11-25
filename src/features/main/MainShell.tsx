@@ -313,7 +313,7 @@ export function MainShell({ session }: { session: Session }) {
           </div>
 
           {isBoard && (
-            <div className="border-b bg-muted/40 px-4 py-1.5 text-xs text-muted-foreground">
+            <div data-part="drop-hint" className="border-b bg-muted/40 px-4 py-1.5 text-xs text-muted-foreground">
               Drop board tickets here to take them. Drag one out onto the board to give it back.
             </div>
           )}
@@ -395,7 +395,9 @@ export function MainShell({ session }: { session: Session }) {
                 dropHover ? 'border-primary bg-primary/10 text-foreground' : 'border-muted-foreground/40 text-muted-foreground',
               )}
             >
-              <span className="pointer-events-none">Drop to assign to you</span>
+              <span data-part="drop-hint" className="pointer-events-none">
+                Drop to assign to you
+              </span>
             </div>
           )}
           </div>

@@ -7,6 +7,7 @@ import { themeDef, type ThemeId } from '@/lib/themes'
  */
 const LOADERS: Partial<Record<ThemeId, () => Promise<unknown>>> = {
   brutalist: () => import('./brutalist'),
+  mission: () => import('./mission'),
   terminal: () => import('./terminal'),
 }
 

@@ -30,7 +30,12 @@ export function TimerChip({ active, onOpen }: { active: boolean; onOpen: () => v
         {running > 0 ? <RecordingDot label="Timers running" /> : <TimerIcon className="size-3.5 text-muted-foreground" />}
         <span className={cn('truncate font-medium', running > 0 && 'text-alert')}>{label}</span>
         {all.length > 0 && (
-          <span className="ml-auto shrink-0 tabular-nums text-muted-foreground" title="Total across all timers">
+          <span
+            data-part="clock"
+            data-running={running > 0}
+            className="ml-auto shrink-0 tabular-nums text-muted-foreground"
+            title="Total across all timers"
+          >
             {formatClock(total)}
           </span>
         )}

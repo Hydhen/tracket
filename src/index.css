@@ -585,6 +585,27 @@ body {
 [data-part='chip']::after {
   content: var(--fx-chip-after, none);
 }
+[data-part='row'][data-selected='true'] {
+  background-image: var(--fx-sel-image, none);
+  box-shadow: var(--fx-sel-shadow, none);
+}
+/* A clock that is running (or that doesn't say, like the one of the title bar) */
+[data-part='clock']:not([data-running='false'])::before {
+  content: var(--fx-clock-before, none);
+}
+[data-part='drop-hint']::before {
+  content: var(--fx-hint-before, none);
+}
+[data-part='board'] {
+  background-image: var(--fx-board-bg, none);
+  background-size: var(--fx-board-size, auto);
+}
+[data-part='detail'] {
+  background-image: var(--fx-detail-bg, none);
+}
+[data-part='section-label'] {
+  color: var(--fx-section-color, var(--muted-foreground));
+}
 /* A layer over the whole window, that lets everything through (scanlines, a vignette) */
 :root::after {
   content: var(--fx-overlay-content, none);

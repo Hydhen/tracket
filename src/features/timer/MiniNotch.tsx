@@ -34,7 +34,9 @@ export function MiniNotch() {
               ) : (
                 <span role="img" aria-label="Timers paused" title="Timers paused" className="size-2 rounded-full bg-notch-dim" />
               )}
-              <span className="text-sm font-medium tabular-nums">{formatClock(running > 0 ? runningMs : totalMs)}</span>
+              <span data-part="clock" data-running={running > 0} className="text-sm font-medium tabular-nums">
+                {formatClock(running > 0 ? runningMs : totalMs)}
+              </span>
               {running > 1 && <span className="text-xs text-notch-muted">×{running}</span>}
             </>
           )}

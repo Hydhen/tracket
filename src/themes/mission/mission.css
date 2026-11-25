@@ -1,0 +1,281 @@
+/*
+ * Mission control: amber on black, a countdown clock (`T+`) on every running timer, panels with an amber edge. Built on
+ * the dark theme (`.dark` is set by the app, see lib/theme.ts), so it only says what is different. The values are those
+ * of the brief (tracket-themes-brief.md, sections 4.3 and 5.3a). A fun theme is not held to the contrast rules of the
+ * standard ones.
+ *
+ * `:root[data-theme]` rather than `[data-theme]` alone: it has to win over `.dark`, which is as specific as the latter.
+ */
+:root[data-theme='mission'] {
+  font-family: 'Chakra Petch', system-ui, sans-serif;
+  --font-mono: 'B612 Mono', ui-monospace, monospace;
+
+  /* The shadcn tokens: surfaces, text, lines */
+  --background: #0a0805;
+  --bar: #100c06;
+  --foreground: #ffd68a;
+  --card: #15100a;
+  --card-foreground: #ffd68a;
+  --popover: #15100a;
+  --popover-foreground: #fff3d6;
+  --primary: #ffb000;
+  --primary-foreground: #1a1000;
+  --secondary: #15100a;
+  --secondary-foreground: #ffd68a;
+  --muted: #15100a;
+  --muted-foreground: #d1a24a;
+  --accent: #2a1e0a;
+  --accent-foreground: #fff3d6;
+  --destructive: #ff6a5a;
+  --border: #4a3510;
+  --input: #4a3510;
+  --ring: #7a5a18;
+  --sidebar: #0e0a05;
+  --sidebar-foreground: #ffd68a;
+  --sidebar-primary: #ffb000;
+  --sidebar-primary-foreground: #1a1000;
+  --sidebar-accent: #2a1e0a;
+  --sidebar-accent-foreground: #fff3d6;
+  --sidebar-border: #4a3510;
+  --sidebar-ring: #7a5a18;
+  --radius: 4px;
+
+  /* A timer that runs: red on a nearly black red, in the pill too */
+  --alert: #ff7d6e;
+  --alert-dot: #ff4a3d;
+  --alert-bg: #1c0805;
+  --alert-bg-hover: #2a0d08;
+  --alert-line: #a8281c;
+  --alert-line-strong: #a8281c;
+  --notch-bg: #1c0805;
+  --notch-fg: #ff7d6e;
+  --notch-line: #a8281c;
+
+  /* Status: an active ticket is solid amber */
+  --chip-active-bg: #ffb000;
+  --chip-active-fg: #1a1000;
+  --chip-done-bg: #4a3510;
+  --chip-done-fg: #ffe2ad;
+  --action: #5ad1ff;
+  --close: #a8281c;
+  --kind-open: #e8c27a;
+  --kind-open-glow: #e8c27a;
+  --kind-open-tint: #2a1e0a;
+  --kind-open-bar: #4a3510;
+  --kind-active: #5ad1ff;
+  --kind-active-glow: #5ad1ff;
+  --kind-active-tint: #0a2230;
+  --kind-resolved: #ffb000;
+  --kind-resolved-glow: #ffb000;
+  --kind-resolved-tint: #2a1e0a;
+  --kind-closed: #a86d00;
+  --kind-closed-glow: #a86d00;
+  --kind-closed-tint: #231706;
+
+  /* The glass over the list: the same black, warmer */
+  --overlay-bg: rgb(10 8 5 / 0.94);
+  --overlay-fg: #fff3d6;
+  --overlay-muted: #d1a24a;
+  --overlay-dim: #7a5a18;
+  --overlay-dashed: #ffd68a;
+  --overlay-line: #4a3510;
+  --overlay-line-soft: #2a1e0a;
+  --overlay-surface: #15100a;
+  --overlay-hover: rgb(255 176 0 / 0.14);
+  --overlay-error: #ff6a5a;
+
+  /* The effects (see the `fx` section of index.css) */
+  --fx-title-transform: uppercase;
+  --fx-title-shadow: 0 0 16px rgb(255 176 0 / 0.35);
+  --fx-section-color: #ff7a1a;
+  /* The selected ticket: a wash of amber from its left edge, and a bar there */
+  --fx-sel-image: linear-gradient(90deg, rgb(255 176 0 / 0.2), rgb(255 176 0 / 0.02));
+  --fx-sel-shadow: inset 3px 0 0 #ffb000;
+  /* The countdown before every running timer, and the label of a drop hint */
+  --fx-clock-before: 'T+ ';
+  --fx-hint-before: 'MSG // ';
+  /* A grid of 32px on the board, and a warm glow in a corner of the ticket */
+  --fx-board-bg:
+    linear-gradient(rgb(255 176 0 / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 176 0 / 0.04) 1px, transparent 1px);
+  --fx-board-size: 32px 32px;
+  --fx-detail-bg: radial-gradient(700px 400px at 100% 0%, rgb(255 122 26 / 0.1), transparent 60%);
+}
+
+/* Bare `rounded` is a fixed size in Tailwind, so it doesn't follow --radius */
+:root[data-theme='mission'] .rounded {
+  border-radius: 2px;
+}
+
+/* Panels with an amber edge: a rule across the top of the columns, an edge on the left of the cells of a ticket */
+:root[data-theme='mission'] [data-part='column'] {
+  border-top: 2px solid #ffb000;
+}
+:root[data-theme='mission'] [data-part='cell'] {
+  padding: 0.25rem 0.5rem;
+  border-left: 3px solid #ffb000;
+  background: rgb(255 176 0 / 0.05);
+}
+:root[data-theme='mission'] [data-part='group-title'] {
+  background: #0a0704;
+}
+:root[data-theme='mission'] [data-part='chip'] {
+  letter-spacing: 0.04em;
+}
+
+/*
+ * Glitches, now and then, as if something had got into the screen. One 13-second turn drives the three parts so that they
+ * happen together: bands of colour that jump across the window, the text splitting into red and cyan, and the window
+ * shaking. A big burst about nine tenths in, and two small ones. The option (see `options` in lib/themes.ts) is off
+ * when the page says so, and then none of this is there.
+ */
+:root[data-theme='mission']:not([data-opt-glitch='off']) {
+  /* The bands, in the layer that goes over the whole window (see `--fx-sweep` in index.css) */
+  --fx-sweep-content: '';
+  --fx-sweep-height: 100vh;
+  --fx-sweep: linear-gradient(
+    to bottom,
+    transparent 17%,
+    rgb(255 176 0 / 0.35) 17% 18.5%,
+    transparent 18.5% 62%,
+    rgb(90 209 255 / 0.22) 62% 63.2%,
+    transparent 63.2% 81%,
+    rgb(255 74 61 / 0.25) 81% 84%,
+    transparent 84%
+  );
+  --fx-sweep-animation: mission-tear 13s steps(1) infinite;
+}
+/* The shake moves the app with `left`, not a transform: a transform would hold the dialogs (fixed) to the app while it
+   lasts. Nothing sticks out of the window while it moves. */
+:root[data-theme='mission']:not([data-opt-glitch='off']) #root {
+  position: relative;
+  animation: mission-shake 13s steps(1) infinite;
+}
+:root[data-theme='mission']:not([data-opt-glitch='off']) body {
+  overflow-x: clip;
+  animation: mission-fringe 13s steps(1) infinite;
+}
+
+@keyframes mission-tear {
+  0%,
+  89.9%,
+  100% {
+    opacity: 0;
+  }
+  90% {
+    opacity: 0.9;
+    transform: translateX(-6px);
+    background-position: 0 0;
+  }
+  91% {
+    opacity: 0;
+  }
+  92% {
+    opacity: 0.8;
+    transform: translateX(9px);
+    background-position: 0 4vh;
+  }
+  93.2% {
+    opacity: 0;
+  }
+  94% {
+    opacity: 1;
+    transform: translateX(-4px);
+    background-position: 0 -7vh;
+  }
+  95.5% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.5;
+    transform: translateX(3px);
+    background-position: 0 -2vh;
+  }
+  40.4% {
+    opacity: 0;
+  }
+  71% {
+    opacity: 0.5;
+    transform: translateX(-3px);
+    background-position: 0 5vh;
+  }
+  71.4% {
+    opacity: 0;
+  }
+}
+@keyframes mission-fringe {
+  0%,
+  39.9%,
+  40.4%,
+  70.9%,
+  71.4%,
+  89.9%,
+  95.5%,
+  100% {
+    text-shadow: none;
+  }
+  40% {
+    text-shadow:
+      -1px 0 rgb(255 74 61 / 0.7),
+      1px 0 rgb(90 209 255 / 0.7);
+  }
+  71% {
+    text-shadow:
+      1px 0 rgb(255 74 61 / 0.7),
+      -1px 0 rgb(90 209 255 / 0.7);
+  }
+  90% {
+    text-shadow:
+      -3px 0 rgb(255 74 61 / 0.8),
+      3px 0 rgb(90 209 255 / 0.8);
+  }
+  92% {
+    text-shadow:
+      4px 0 rgb(255 74 61 / 0.8),
+      -4px 0 rgb(90 209 255 / 0.8);
+  }
+  94% {
+    text-shadow:
+      -2px 0 rgb(255 74 61 / 0.7),
+      2px 0 rgb(90 209 255 / 0.7);
+  }
+}
+@keyframes mission-shake {
+  0%,
+  39.9%,
+  40.4%,
+  70.9%,
+  71.4%,
+  89.9%,
+  95.5%,
+  100% {
+    left: 0;
+  }
+  40% {
+    left: 2px;
+  }
+  71% {
+    left: -2px;
+  }
+  90% {
+    left: -4px;
+  }
+  91% {
+    left: 0;
+  }
+  92% {
+    left: 6px;
+  }
+  93% {
+    left: -3px;
+  }
+  94% {
+    left: 2px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme='mission'] #root,
+  :root[data-theme='mission'] body {
+    animation: none;
+  }
+}

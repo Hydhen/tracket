@@ -47,6 +47,8 @@ function IssueRow({
   return (
     <li className={cn('group relative select-none', row.dragging && 'opacity-45')} {...row.dragProps}>
       <button
+        data-part="row"
+        data-selected={selected || undefined}
         // Ctrl/Cmd+click picks several tickets to move together, Alt+click opens the side view
         onClick={(e) => row.handleModifierClick(e, () => onOpenSide(i.key)) || onSelect(i.key)}
         className={cn(

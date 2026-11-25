@@ -50,7 +50,21 @@ export const THEMES = [
       { id: 'vignette', label: 'Vignette', hint: 'Dark, rounded edges, softer towards them', default: true },
     ],
   },
-  { id: 'mission', label: 'Mission control', group: 'fun', scheme: 'dark', swatch: ['#0a0805', '#0e0a05', '#ffb000'] },
+  {
+    id: 'mission',
+    label: 'Mission control',
+    group: 'fun',
+    scheme: 'dark',
+    swatch: ['#0a0805', '#0e0a05', '#ffb000'],
+    options: [
+      {
+        id: 'glitch',
+        label: 'Glitches',
+        hint: 'Now and then the screen tears, splits into colours and shakes, as if something got into it',
+        default: true,
+      },
+    ],
+  },
   { id: 'brutalist', label: 'Neo-brutalist', group: 'fun', scheme: 'light', swatch: ['#fff8e1', '#ffd23f', '#ff6b9d'] },
   { id: 'quest', label: 'Quest log', group: 'fun', scheme: 'dark', swatch: ['#040827', '#0b1760', '#ffd23f'] },
 ] as const satisfies readonly ThemeDef[]

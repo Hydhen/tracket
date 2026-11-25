@@ -324,7 +324,7 @@ export function BoardView({
   }
 
   return (
-    <div className="flex h-full min-w-0 flex-col">
+    <div data-part="board" className="flex h-full min-w-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2">
         <SourcePicker
           options={options}
