@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- [`ff2e925`](https://github.com/Hydhen/tracket/commit/ff2e925a0cc60a09f87261a25097d9fa132146eb) Thanks [@Hydhen](https://github.com/Hydhen)! - A new Appearance page in the settings to choose the theme, with six fun themes besides System, Light and Dark: Terminal (green on black in monospace, with a moving line and CRT edges you can switch off), Neo-brutalist (a cream page with thick black outlines and hard shadows) Mission control (amber on black, with a T+ countdown on every running timer and glitches you can switch off) Quest log (blue windows, white borders and a pixel font, like an old role-playing game) Neon cyberpunk (cut corners, neon colours and scanlines you can switch off) and Windows 98 (bevelled grey windows, a navy title bar, system fonts).
+- [`ff2e925`](https://github.com/Hydhen/tracket/commit/ff2e925a0cc60a09f87261a25097d9fa132146eb) Thanks [@Hydhen](https://github.com/Hydhen)! - A new Appearance page in the settings to choose the theme, with six fun themes besides System, Light and Dark: Terminal (green on black in monospace, with a moving line and CRT edges you can switch off), Neo-brutalist (a cream page with thick black outlines and hard shadows), Mission control (amber on black, with a T+ countdown on every running timer and glitches you can switch off), Quest log (blue windows, white borders and a pixel font, like an old role-playing game), Neon cyberpunk (cut corners, neon colours and scanlines you can switch off) and Windows 98 (bevelled grey windows, a navy title bar, system fonts).
 
 ## 0.7.7
 
