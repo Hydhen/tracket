@@ -602,6 +602,7 @@ body {
 }
 [data-part='detail'] {
   background-image: var(--fx-detail-bg, none);
+  background-size: var(--fx-detail-size, auto);
 }
 [data-part='section-label'] {
   color: var(--fx-section-color, var(--muted-foreground));

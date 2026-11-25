@@ -38,7 +38,14 @@ export const THEMES = [
   { id: 'dark', label: 'Dark', group: 'standard', scheme: 'dark', swatch: ['#1c1c1c', '#2e2e2e', '#ebebeb'] },
   // Light: the silver of its windows is its "face", and its native controls should be light too
   { id: 'win98', label: 'Windows 98', group: 'fun', scheme: 'light', swatch: ['#008080', '#c0c0c0', '#000080'] },
-  { id: 'neon', label: 'Neon cyberpunk', group: 'fun', scheme: 'dark', swatch: ['#07060f', '#110e22', '#00f0ff'] },
+  {
+    id: 'neon',
+    label: 'Neon cyberpunk',
+    group: 'fun',
+    scheme: 'dark',
+    swatch: ['#07060f', '#110e22', '#00f0ff'],
+    options: [{ id: 'scanlines', label: 'Scanlines', hint: 'Fine horizontal lines over the whole window', default: true }],
+  },
   {
     id: 'terminal',
     label: 'Terminal',
