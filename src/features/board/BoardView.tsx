@@ -162,7 +162,7 @@ function BoardColumnView({
           className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2 text-left uppercase hover:bg-accent hover:text-foreground"
         >
           <ChevronDown className="size-3.5 shrink-0" />
-          <span className="truncate">{column.name}</span>
+          <span data-part="column-title" className="truncate">{column.name}</span>
           <span className="font-normal">{column.issues.length}</span>
         </button>
       </h2>

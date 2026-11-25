@@ -77,7 +77,7 @@ export function TitleBar() {
         <span data-tauri-drag-region className="pointer-events-none flex items-center">
           <Mark />
         </span>
-        <span data-tauri-drag-region className="pointer-events-none text-xs font-medium text-muted-foreground">
+        <span data-part="brand" data-tauri-drag-region className="pointer-events-none text-xs font-medium text-muted-foreground">
           {title}
         </span>
       </div>

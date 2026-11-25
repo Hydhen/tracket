@@ -25,6 +25,9 @@ only to name the application that is opened.
 
 **Geist Variable**, via `@fontsource-variable/geist`, under the SIL Open Font License 1.1.
 
+**IBM Plex Mono**, via `@fontsource/ibm-plex-mono`, under the SIL Open Font License 1.1. It is the font of the
+Terminal theme, and is only loaded when that theme is chosen.
+
 The website has its own repository, [Hydhen/tracket-site](https://github.com/Hydhen/tracket-site), with its own
 notices. Nothing from it is part of this repository or of the application.
 

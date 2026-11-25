@@ -1,0 +1,120 @@
+/*
+ * Terminal: green phosphor on black, in monospace, with square corners. Built on the dark theme (`.dark` is set by
+ * the app, see lib/theme.ts), so it only says what is different. The values are those of the brief
+ * (tracket-themes-brief.md, section 4.2). A fun theme is not held to the contrast rules of the standard ones.
+ *
+ * `:root[data-theme]` rather than `[data-theme]` alone: it has to win over `.dark`, which is as specific as the
+ * latter.
+ */
+:root[data-theme='terminal'] {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* The shadcn tokens: surfaces, text, lines */
+  --background: #020b04;
+  --foreground: #7dff9a;
+  --card: #041109;
+  --card-foreground: #7dff9a;
+  --popover: #031a0b;
+  --popover-foreground: #c8ffd6;
+  --primary: #4dff7c;
+  --primary-foreground: #02140a;
+  --secondary: #031a0b;
+  --secondary-foreground: #7dff9a;
+  --muted: #031a0b;
+  --muted-foreground: #5ccf7a;
+  --accent: #0b3a1a;
+  --accent-foreground: #c8ffd6;
+  --destructive: #ff7b7b;
+  --border: #1f6b34;
+  --input: #1f6b34;
+  --ring: #2fa04e;
+  --sidebar: #041109;
+  --sidebar-foreground: #7dff9a;
+  --sidebar-primary: #4dff7c;
+  --sidebar-primary-foreground: #02140a;
+  --sidebar-accent: #0b3a1a;
+  --sidebar-accent-foreground: #c8ffd6;
+  --sidebar-border: #1f6b34;
+  --sidebar-ring: #2fa04e;
+  --radius: 0px;
+
+  /* A timer that runs, red on a nearly black red, in the pill too */
+  --alert: #ff7b7b;
+  --alert-dot: #ff4d4d;
+  --alert-bg: #190606;
+  --alert-bg-hover: #260a0a;
+  --alert-line: #b02a2a;
+  --alert-line-strong: #b02a2a;
+  --notch-bg: #190606;
+  --notch-fg: #ff7b7b;
+  --notch-line: #b02a2a;
+
+  /* Status: an active ticket is in inverse video, a finished one is plain green */
+  --chip-active-bg: #4dff7c;
+  --chip-active-fg: #02140a;
+  --chip-done-bg: transparent;
+  --chip-done-fg: #4dff7c;
+  --action: #6bd6ff;
+  --close: #b02a2a;
+  --kind-open: #7dd68f;
+  --kind-open-glow: #7dd68f;
+  --kind-open-tint: #031a0b;
+  --kind-open-bar: #1f6b34;
+  --kind-active: #6bd6ff;
+  --kind-active-glow: #6bd6ff;
+  --kind-active-tint: #07222e;
+  --kind-resolved: #4dff7c;
+  --kind-resolved-glow: #4dff7c;
+  --kind-resolved-tint: #0b3a1a;
+  --kind-closed: #1f8f3f;
+  --kind-closed-glow: #1f8f3f;
+  --kind-closed-tint: #072a12;
+
+  /* The dark glass over the list: the same black, greener */
+  --overlay-bg: rgb(2 11 4 / 0.94);
+  --overlay-fg: #c8ffd6;
+  --overlay-muted: #5ccf7a;
+  --overlay-dim: #2fa04e;
+  --overlay-dashed: #7dff9a;
+  --overlay-line: #1f6b34;
+  --overlay-line-soft: #0f3a1c;
+  --overlay-surface: #041109;
+  --overlay-hover: rgb(77 255 124 / 0.12);
+
+  /* The effects (see the `fx` section of index.css) */
+  --fx-text-glow: 0 0 5px rgb(77 255 124 / 0.3);
+  --fx-title-transform: uppercase;
+  --fx-title-shadow: 0 0 12px rgb(77 255 124 / 0.45);
+  --fx-brand-before: '$ ';
+  --fx-brand-after: '_';
+  --fx-title-before: '> ';
+  --fx-group-before: '## ';
+  --fx-column-before: '# ';
+  --fx-chip-before: '[';
+  --fx-chip-after: ']';
+  /* The scanlines of a screen, and its darker corners */
+  --fx-overlay-content: '';
+  --fx-overlay:
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.25) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 60%, rgb(0 0 0 / 0.45) 100%);
+}
+
+/* Bare `rounded` is a fixed size in Tailwind, so it doesn't follow --radius */
+:root[data-theme='terminal'] .rounded {
+  border-radius: 0;
+}
+
+/* The cursor after the name of the app */
+:root[data-theme='terminal'] [data-part='brand']::after {
+  animation: terminal-blink 1.1s steps(1) infinite;
+}
+@keyframes terminal-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme='terminal'] [data-part='brand']::after {
+    animation: none;
+  }
+}

@@ -1,5 +1,6 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { appStorage } from './storage'
+import { loadTheme } from '@/themes'
 import { DEFAULT_THEME, isThemeId, themeDef, type ThemeId } from './themes'
 
 /** What is saved, and what the picker sets: one of the themes of `themes.ts` (System, Light, Dark or a fun one) */
@@ -21,6 +22,8 @@ export function getThemePreference(): ThemePreference {
 
 const inTauri = '__TAURI_INTERNALS__' in window
 let nativeTheme: 'light' | 'dark' | 'system' | undefined
+/** Counts the times a theme was applied, to tell a late one from the last one */
+let applying = 0
 
 /** The window's own chrome (title bar) follows the choice too; "system" hands it back to Windows. */
 function syncNativeTheme(scheme: 'light' | 'dark' | 'system') {
@@ -39,8 +42,16 @@ function syncNativeTheme(scheme: 'light' | 'dark' | 'system') {
  * fun theme is on top of light or dark, whichever it says it is built on, whatever the system is. The fun theme itself
  * is the `data-theme` of the page, which its own rules answer to.
  */
-function apply() {
-  const theme = themeDef(getThemePreference())
+async function apply() {
+  const preference = getThemePreference()
+  const theme = themeDef(preference)
+  // A fun theme's rules come first: the page is never switched to a theme that has none yet. A later choice, made
+  // while this one was loading, wins
+  const turn = ++applying
+  if (theme.group === 'fun') {
+    await loadTheme(preference).catch((error) => console.error('Could not load the theme', preference, error))
+    if (turn !== applying) return
+  }
   const root = document.documentElement
   const dark = theme.scheme === 'dark' || (theme.scheme === 'system' && systemDark.matches)
   root.classList.toggle('dark', dark)
@@ -56,11 +67,14 @@ export function setThemePreference(preference: ThemePreference) {
   } catch {
     // the choice still applies for this session
   }
-  apply()
+  void apply()
 }
 
-/** Applies the saved theme and keeps following the system one when set to "system". */
+/**
+ * Applies the saved theme and keeps following the system one when set to "system". Resolves once the page has the
+ * theme: the app is shown after that, so that it never appears in another look first.
+ */
 export function initTheme() {
-  apply()
-  systemDark.addEventListener('change', apply)
+  systemDark.addEventListener('change', () => void apply())
+  return apply()
 }

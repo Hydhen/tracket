@@ -116,7 +116,7 @@ export function IssueList({
         if (items.length === 0) return null
         return (
           <section key={id}>
-            <h2 className="sticky top-0 z-10 border-b bg-background px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <h2 data-part="group-title" className="sticky top-0 z-10 border-b bg-background px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {label} · {items.length}
             </h2>
             <ul>

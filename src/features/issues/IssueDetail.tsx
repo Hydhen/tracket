@@ -443,7 +443,7 @@ export function IssueDetail({
             </div>
           </div>
         </div>
-        <h1 ref={titleRef} className="mt-2 text-xl font-semibold">
+        <h1 ref={titleRef} data-part="detail-title" className="mt-2 text-xl font-semibold">
           {issue.summary}
         </h1>
 

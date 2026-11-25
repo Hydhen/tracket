@@ -9,7 +9,7 @@ const STYLES: Record<IssueSummary['status']['category'], string> = {
 
 export function StatusPill({ status }: { status: IssueSummary['status'] }) {
   return (
-    <span className={cn('rounded px-1.5 py-0.5 text-[11px] font-medium uppercase', STYLES[status.category])}>
+    <span data-part="chip" className={cn('rounded px-1.5 py-0.5 text-[11px] font-medium uppercase', STYLES[status.category])}>
       {status.name}
     </span>
   )

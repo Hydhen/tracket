@@ -549,6 +549,49 @@ html[data-mini] body {
 }
 
 /*
+ * Effects: what a fun theme adds to colours. Each is a `--fx-*` value that a theme sets and that is inert when it
+ * isn't, so nothing here changes the standard themes. Parts of the UI that a theme can decorate say so with a
+ * `data-part`.
+ */
+body {
+  text-shadow: var(--fx-text-glow, none);
+}
+[data-part='detail-title'] {
+  text-transform: var(--fx-title-transform, none);
+  text-shadow: var(--fx-title-shadow, none);
+}
+[data-part='brand']::before {
+  content: var(--fx-brand-before, none);
+}
+[data-part='brand']::after {
+  content: var(--fx-brand-after, none);
+}
+[data-part='detail-title']::before {
+  content: var(--fx-title-before, none);
+}
+[data-part='group-title']::before {
+  content: var(--fx-group-before, none);
+}
+[data-part='column-title']::before {
+  content: var(--fx-column-before, none);
+}
+[data-part='chip']::before {
+  content: var(--fx-chip-before, none);
+}
+[data-part='chip']::after {
+  content: var(--fx-chip-after, none);
+}
+/* A layer over the whole window, that lets everything through (scanlines, a vignette) */
+:root::after {
+  content: var(--fx-overlay-content, none);
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  background: var(--fx-overlay, none);
+}
+
+/*
  * Tree node folding. Each part reads its own data-open flag, so folding and unfolding run
  * the same transitions in opposite directions (and nested nodes don't affect each other).
  */
