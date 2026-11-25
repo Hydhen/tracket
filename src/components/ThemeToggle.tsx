@@ -1,26 +1,32 @@
-import { Monitor, Moon, Sun } from 'lucide-react'
+import { Monitor, Moon, Palette, Sun } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { getThemePreference, setThemePreference, type ThemePreference } from '@/lib/theme'
+import { themeDef, type StandardThemeId } from '@/lib/themes'
 
-const NEXT: Record<ThemePreference, ThemePreference> = { system: 'light', light: 'dark', dark: 'system' }
-const LABEL: Record<ThemePreference, string> = { system: 'System', light: 'Light', dark: 'Dark' }
+const CYCLE: readonly StandardThemeId[] = ['system', 'light', 'dark']
 const ICON = { system: Monitor, light: Sun, dark: Moon }
+
+/** The standard theme after this one. A fun theme goes back to the start of the cycle. */
+const next = (preference: ThemePreference): StandardThemeId => {
+  const at = CYCLE.findIndex((id) => id === preference)
+  return CYCLE[(at + 1) % CYCLE.length]
+}
 
 /** Cycles System → Light → Dark. */
 export function ThemeToggle() {
   const [preference, setPreference] = useState(getThemePreference)
-  const Icon = ICON[preference]
+  const Icon = preference in ICON ? ICON[preference as StandardThemeId] : Palette
+  const after = next(preference)
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      title={`Theme: ${LABEL[preference]} (click for ${LABEL[NEXT[preference]]})`}
+      title={`Theme: ${themeDef(preference).label} (click for ${themeDef(after).label})`}
       onClick={() => {
-        const next = NEXT[preference]
-        setThemePreference(next)
-        setPreference(next)
+        setThemePreference(after)
+        setPreference(after)
       }}
     >
       <Icon className="size-4" />
