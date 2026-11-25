@@ -60,7 +60,7 @@ function TimerRow({
       <span
         className={cn(
           'shrink-0 text-sm font-medium tabular-nums',
-          running ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground',
+          running ? 'text-alert' : 'text-muted-foreground',
         )}
       >
         {formatClock(elapsedOf(timer, now))}
@@ -71,7 +71,7 @@ function TimerRow({
         aria-label={`${running ? 'Pause' : 'Resume'} the timer on ${issueKey}`}
         className={cn(
           'shrink-0 rounded border p-1.5 hover:bg-background',
-          running ? 'border-red-500/50 text-red-600 dark:text-red-400' : 'text-muted-foreground hover:text-foreground',
+          running ? 'border-alert-line text-alert' : 'text-muted-foreground hover:text-foreground',
         )}
       >
         {running ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
@@ -120,7 +120,7 @@ export function TimersView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className={cn('flex items-center gap-2 border-b px-4 py-2', runningCount > 0 && 'bg-red-500/10')}>
+      <div className={cn('flex items-center gap-2 border-b px-4 py-2', runningCount > 0 && 'bg-alert-bg')}>
         {runningCount > 0 && <RecordingDot label="Timers running" />}
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {runningCount} running · {keys.length - runningCount} paused
@@ -130,7 +130,7 @@ export function TimersView({
           disabled={runningCount === 0}
           title="Stop all running timers (the time is kept)"
           aria-label="Stop all running timers"
-          className="ml-auto flex items-center gap-1.5 rounded border border-red-500/50 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-500/15 disabled:pointer-events-none disabled:opacity-40 dark:text-red-400"
+          className="ml-auto flex items-center gap-1.5 rounded border border-alert-line px-2 py-1 text-xs font-medium text-alert hover:bg-alert-bg-hover disabled:pointer-events-none disabled:opacity-40"
         >
           <Square className="size-3 fill-current" />
           Stop all

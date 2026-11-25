@@ -26,16 +26,16 @@ export function MiniNotch() {
       <div className="timer-pill mini-notch" onMouseDown={drag}>
         <span className="pointer-events-none flex items-center gap-2" role="status" aria-live="off">
           {count === 0 ? (
-            <span className="text-sm text-white/60">No timer</span>
+            <span className="text-sm text-notch-muted">No timer</span>
           ) : (
             <>
               {running > 0 ? (
                 <RecordingDot label={running > 1 ? `${running} timers running` : 'Timer running'} />
               ) : (
-                <span role="img" aria-label="Timers paused" title="Timers paused" className="size-2 rounded-full bg-white/35" />
+                <span role="img" aria-label="Timers paused" title="Timers paused" className="size-2 rounded-full bg-notch-dim" />
               )}
               <span className="text-sm font-medium tabular-nums">{formatClock(running > 0 ? runningMs : totalMs)}</span>
-              {running > 1 && <span className="text-xs text-white/60">×{running}</span>}
+              {running > 1 && <span className="text-xs text-notch-muted">×{running}</span>}
             </>
           )}
         </span>

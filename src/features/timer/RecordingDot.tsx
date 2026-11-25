@@ -4,8 +4,8 @@ import { isRunning, useTimers } from './timerStore'
 export function RecordingDot({ label }: { label: string }) {
   return (
     <span role="img" aria-label={label} title={label} className="relative flex size-2 shrink-0">
-      <span className="absolute inline-flex size-full rounded-full bg-red-500 opacity-60 motion-safe:animate-ping" />
-      <span className="relative size-2 rounded-full bg-red-500" />
+      <span className="absolute inline-flex size-full rounded-full bg-alert-dot opacity-60 motion-safe:animate-ping" />
+      <span className="relative size-2 rounded-full bg-alert-dot" />
     </span>
   )
 }

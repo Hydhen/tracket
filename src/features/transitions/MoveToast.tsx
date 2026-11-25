@@ -37,7 +37,7 @@ export function MoveToast({
           {(movedLabel || toast.revert) && (
             <button
               onClick={onUndo}
-              className="h-11 shrink-0 rounded-lg px-3.5 text-[13px] font-semibold text-blue-600 hover:bg-accent dark:text-blue-300"
+              className="h-11 shrink-0 rounded-lg px-3.5 text-[13px] font-semibold text-action hover:bg-accent"
             >
               Undo
             </button>
@@ -45,7 +45,7 @@ export function MoveToast({
           {toast.retry && (
             <button
               onClick={toast.retry}
-              className="h-11 shrink-0 rounded-lg px-3.5 text-[13px] font-semibold text-blue-600 hover:bg-accent dark:text-blue-300"
+              className="h-11 shrink-0 rounded-lg px-3.5 text-[13px] font-semibold text-action hover:bg-accent"
             >
               Fill in details
             </button>

@@ -36,7 +36,7 @@ function ControlButton({
       onClick={onClick}
       className={cn(
         'flex h-full w-11.5 items-center justify-center text-muted-foreground transition-colors hover:text-foreground',
-        danger ? 'hover:bg-red-600 hover:text-white' : 'hover:bg-accent',
+        danger ? 'hover:bg-close hover:text-close-fg' : 'hover:bg-accent',
       )}
     >
       {children}

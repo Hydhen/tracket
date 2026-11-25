@@ -101,15 +101,15 @@ export function TimeTracker({ issueKey }: { issueKey: string }) {
             stuck
               ? '-mx-6 rounded-none border-transparent border-b-border px-6 shadow-sm'
               : 'rounded-md border-border px-3',
-            running && (stuck ? 'border-b-red-500/60 bg-red-500/10' : 'border-red-500/60 bg-red-500/10'),
+            running && (stuck ? 'border-b-alert-line-strong bg-alert-bg' : 'border-alert-line-strong bg-alert-bg'),
           )}
         >
           <div className="flex h-7 items-center gap-2">
-            <TimerIcon className={cn('size-4 text-muted-foreground', running && 'text-red-600 dark:text-red-400')} />
+            <TimerIcon className={cn('size-4 text-muted-foreground', running && 'text-alert')} />
             <span
               className={cn(
                 'min-w-[4.5rem] text-sm font-medium tabular-nums',
-                running && 'text-red-600 dark:text-red-400',
+                running && 'text-alert',
               )}
               // Not announced every second
               aria-live="off"
@@ -122,7 +122,7 @@ export function TimeTracker({ issueKey }: { issueKey: string }) {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-red-500/50 text-red-600 hover:bg-red-500/15 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400"
+                className="border-alert-line text-alert hover:bg-alert-bg-hover hover:text-alert"
                 onClick={() => pause(issueKey)}
               >
                 <Pause className="size-3.5" />

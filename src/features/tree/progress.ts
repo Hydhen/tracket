@@ -39,10 +39,10 @@ export function summarizeChildren(children: IssueSummary[]): Progress | null {
   const done = closed + resolved
 
   const all: Segment[] = [
-    { id: 'closed', count: closed, className: 'bg-[#2f8f5b]' },
-    { id: 'resolved', count: resolved, className: 'bg-[#5ee38d]' },
-    { id: 'active', count: active, className: 'bg-[#7db4ff]' },
-    { id: 'open', count: open, className: 'bg-zinc-300 dark:bg-[#3a3a3f]' },
+    { id: 'closed', count: closed, className: 'bg-kind-closed' },
+    { id: 'resolved', count: resolved, className: 'bg-kind-resolved' },
+    { id: 'active', count: active, className: 'bg-kind-active' },
+    { id: 'open', count: open, className: 'bg-kind-open-bar' },
   ]
   const segments = all.filter((s) => s.count > 0)
 
