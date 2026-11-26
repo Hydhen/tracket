@@ -261,12 +261,32 @@ export interface SprocketWorkflow {
   id: string
   name: string
   description: string
+  /** Runs what you ask in words: "Ask an agent" starts it with your request */
+  forRequests?: boolean
+}
+
+/** A ticket's latest Sprocket run, in a few words: what its row, the Agents tab and the drag targets show */
+export interface SprocketTicket {
+  ticketKey: string
+  runId: string
+  number: number
+  workflowName: string
+  state: SprocketRunState
+  startedAt: string
+  /** The oldest decision waiting, if any */
+  approvalId: string | null
+  /** `gate`: a step's approval; `tool`: an agent asking to use a tool */
+  approvalKind: 'gate' | 'tool' | null
+  approvalSummary: string | null
+  /** The step that failed or was interrupted, to retry it */
+  failedJobId: string | null
+  /** How many of its agents work now */
+  working: number
 }
 
 export type SprocketRunState = 'running' | 'waiting' | 'passed' | 'failed' | 'cancelled' | 'interrupted'
 export type SprocketJobState = 'running' | 'waiting' | 'done' | 'failed' | 'rejected' | 'stopped' | 'interrupted'
 
-/** A run as Sprocket describes it; only what the ticket view shows */
 /** A step of a Sprocket workflow; a condition holds its branches and a loop its steps. */
 export interface SprocketStep {
   id: string
@@ -281,15 +301,22 @@ export interface SprocketStep {
   team?: { members: string[]; lead: string } | null
 }
 
+/** A run as Sprocket describes it; only what the ticket view shows */
 export interface SprocketRun {
   id: string
   workflowName: string
   number: number
   startedBy: string
+  /** What was asked, on a run started with "Ask an agent" */
+  request?: string | null
   state: SprocketRunState
   startedAt: string
   steps: SprocketStep[]
-  jobs: { id: string; stepId: string; state: SprocketJobState; attempt: number }[]
+  /**
+   * Oldest first. `scope` names the loop item a job is for (`each[2]/`, empty outside loops), and a job done again
+   * (retried, or sent back by a rejection) leaves the earlier one `superseded`.
+   */
+  jobs: { id: string; stepId: string; kind?: string; state: SprocketJobState; attempt: number; scope?: string; superseded?: boolean }[]
   /** Pending only */
   approvals: { id: string; kind: 'gate' | 'tool'; jobId: string | null; summary: string; toolName: string | null }[]
   /** Whether its workflow has a board (older Sprocket versions: absent) */
@@ -405,8 +432,13 @@ export const api = {
   sprocketWorkflows: () => call<SprocketWorkflow[]>('sprocket_workflows'),
   /** The ticket's runs, newest first */
   sprocketRuns: (key: string) => call<SprocketRun[]>('sprocket_runs', { key }),
-  sprocketStartRun: (run: { workflow: string; key: string; title: string; url: string; folder: string; startedBy: string }) =>
+  sprocketStartRun: (run: { workflow: string; key: string; title: string; url: string; folder: string; startedBy: string; request?: string }) =>
     call<SprocketRun>('sprocket_start_run', { run }),
+  sprocketTickets: () => call<SprocketTicket[]>('sprocket_tickets'),
+  sprocketCancelRun: (runId: string, by: string) => call<void>('sprocket_cancel_run', { runId, by }),
+  sprocketRetryJob: (jobId: string) => call<void>('sprocket_retry_job', { jobId }),
+  /** Brings Sprocket's window up on the run */
+  sprocketShowRun: (runId: string) => call<void>('sprocket_show_run', { runId }),
   sprocketDecide: (id: string, approve: boolean, by: string, reason?: string) =>
     call<void>('sprocket_decide', { id, approve, by, reason: reason || null }),
   sprocketPostNote: (runId: string, body: string, by: string, to?: string) =>

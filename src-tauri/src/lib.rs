@@ -48,6 +48,8 @@ pub fn run() {
         // Updates come from this repository's GitHub releases, signed with the key in tauri.conf.json
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        // Tells you when a Sprocket agent needs you (Settings › Sprocket)
+        .plugin(tauri_plugin_notification::init())
         .manage(auth::build_http_client())
         .manage(storage::Storage::default())
         .manage(mini::MiniMode::default())
@@ -92,6 +94,10 @@ pub fn run() {
             sprocket::sprocket_start_run,
             sprocket::sprocket_decide,
             sprocket::sprocket_post_note,
+            sprocket::sprocket_tickets,
+            sprocket::sprocket_cancel_run,
+            sprocket::sprocket_retry_job,
+            sprocket::sprocket_show_run,
             storage::storage_load,
             storage::storage_set,
             badge::set_timer_badge,

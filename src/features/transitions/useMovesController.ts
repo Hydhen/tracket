@@ -691,6 +691,8 @@ export function useMovesController({
         endDrag()
         setAssigning(dragged)
       },
+      /** Ends the drag after a drop somewhere else (Sprocket's targets): they act on the tickets themselves */
+      close: endDrag,
     },
     /** Tickets dropped on "Assign to…": the person to give them to is being picked */
     assignPicker: {

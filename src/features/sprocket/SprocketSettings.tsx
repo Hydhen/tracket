@@ -3,8 +3,9 @@ import { useState, type FormEvent } from 'react'
 import { Spinner } from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useIssues, viewJql } from '@/features/issues/useIssues'
 import { api, type ApiError, type SprocketSession } from '@/lib/api'
-import { useSprocketPrefs, useSprocketSession } from './useSprocket'
+import { splitWorkflows, useSprocketPrefs, useSprocketReady, useSprocketSession, useSprocketWorkflows } from './useSprocket'
 
 /** Where Sprocket listens when it runs on this computer */
 const DEFAULT_ADDRESS = 'http://127.0.0.1:47821'
@@ -16,8 +17,76 @@ const DATA: [string, string, string][] = [
     'Sent to Sprocket when you start a workflow',
     "Sprocket and its agents; agents read the full ticket from Jira themselves",
   ],
-  ['Runs, stages and approvals', 'Fetched from Sprocket when displayed, kept in memory', 'Only on this computer'],
+  ['What you ask an agent to do', 'Sent to Sprocket with "Ask an agent"', 'Sprocket and its agents'],
+  [
+    'Runs, stages and approvals',
+    "Fetched from Sprocket when displayed, and every half minute for the tickets' agent states; kept in memory",
+    'Only on this computer',
+  ],
+  ['Default workflow per project', "This app's settings on this computer", 'Only you'],
 ]
+
+const TOGGLES = [
+  ['section', 'Agents section on tickets', 'The run, its stages and approval requests, under the ticket fields'],
+  ['tab', 'Agents tab in the sidebar', 'Your tickets an agent is working on, with a dot when one needs you'],
+  ['notify', 'Notify me when an agent needs me', 'A Windows notification for approvals and failed runs'],
+  ['button', 'Agents button next to Start working', 'Start a workflow on the ticket, in its worktree'],
+] as const
+
+/** Which workflow the Agents menu and the Agents tab start for a project's tickets. */
+function ProjectDefaults() {
+  const ready = useSprocketReady()
+  const workflows = useSprocketWorkflows(ready)
+  const { plain } = splitWorkflows(workflows.data)
+  const defaults = useSprocketPrefs((s) => s.defaults)
+  const setDefault = useSprocketPrefs((s) => s.setDefault)
+  // The projects of your open tickets, and those that already have a default
+  const issues = useIssues(viewJql('open')).data?.issues ?? []
+  const projects = [...new Set([...issues.map((i) => i.projectKey), ...Object.keys(defaults)])].sort()
+
+  return (
+    <>
+      <h3 className="mt-8 text-xs font-medium uppercase tracking-wide text-muted-foreground">Default workflow per project</h3>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Pre-selected in the ticket's Agents menu, and what dropping tickets on the Agents tab starts.
+      </p>
+      {!ready ? (
+        <p className="mt-2.5 text-sm text-muted-foreground">Sign in to Sprocket to pick them.</p>
+      ) : projects.length === 0 ? (
+        <p className="mt-2.5 text-sm text-muted-foreground">None of your open tickets yet.</p>
+      ) : (
+        <div className="mt-2.5 flex flex-col gap-2">
+          {projects.map((project) => {
+            const value = defaults[project] ?? ''
+            const gone = value && !plain.some((w) => w.id === value)
+            return (
+              <div key={project} className="flex items-center gap-3">
+                <label htmlFor={`sprocket-default-${project}`} className="w-24 shrink-0 font-mono text-[13px] font-medium">
+                  {project}
+                </label>
+                <select
+                  id={`sprocket-default-${project}`}
+                  aria-label={`Default workflow for ${project}`}
+                  className="h-8 min-w-60 rounded-md border bg-transparent px-2 text-sm"
+                  value={value}
+                  onChange={(e) => setDefault(project, e.target.value || null)}
+                >
+                  <option value="">None</option>
+                  {plain.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+                  {gone && <option value={value}>{value} (no longer offered)</option>}
+                </select>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </>
+  )
+}
 
 function statusLine(session: SprocketSession) {
   if (!session.reachable) return { text: session.message ?? "Sprocket doesn't answer. Is it running?", tone: 'text-destructive' }
@@ -108,12 +177,7 @@ export function SprocketSettings() {
 
       <h3 className="mt-8 text-xs font-medium uppercase tracking-wide text-muted-foreground">On a ticket</h3>
       <div className="mt-2.5 flex flex-col gap-2.5">
-        {(
-          [
-            ['section', 'Agents section on tickets', 'The run, its stages and approval requests, under the ticket fields'],
-            ['button', 'Agents button next to Start working', 'Start a workflow on the ticket, in its worktree'],
-          ] as const
-        ).map(([key, label, help]) => (
+        {TOGGLES.map(([key, label, help]) => (
           <label key={key} className="flex cursor-pointer items-start gap-2.5">
             <input
               type="checkbox"
@@ -128,6 +192,8 @@ export function SprocketSettings() {
           </label>
         ))}
       </div>
+
+      <ProjectDefaults />
 
       <h3 className="mt-8 text-xs font-medium uppercase tracking-wide text-muted-foreground">Your data</h3>
       <div className="mt-2.5 overflow-x-auto">

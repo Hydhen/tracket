@@ -52,9 +52,18 @@ gets:
   is made first, as Start working makes it, and the agents work in it;
 - an **Agents** section under the ticket's fields: the latest run, its steps, the agents at work (a team's members
   too), what waits for your approval, which you can approve or reject (with a reason sent back to the agent) from
-  there, and the run's board: the notes its agents leave each other, where you can post one for them.
+  there, and the run's board: the notes its agents leave each other, where you can post one for them. **Open run**
+  brings Sprocket up on the run, and a failed run can be retried or closed;
+- an **Agents** tab in the sidebar: your tickets an agent works on, with a dot when one needs you. Each row of the
+  lists says it too (Needs you, Agent running, Run failed);
+- **Hand to agents** while dragging tickets: drop them on one of Sprocket's workflows (each ticket gets its own run, in
+  its own worktree), on **Ask an agent…** to say in words what you want done, or on Approve, Retry or Stop for the runs
+  they have. Dropping them on the Agents tab starts each project's default workflow, set in Settings > Sprocket;
+- a Windows notification when an agent waits for your approval or a run fails;
+- comments a workflow posted on the ticket marked **via Sprocket**.
 
-Both can be turned off in Settings > Sprocket. Nothing shows until you sign in. Sprocket runs on this computer
+Each of the ticket section, the tab, the notifications and the button can be turned off in Settings > Sprocket.
+Nothing shows until you sign in. Sprocket runs on this computer
 (`http://127.0.0.1:47821`), and Tracket reads Sprocket's token from the keychain when you sign in, so there is nothing
 to paste; a Sprocket elsewhere needs https and its token.
 
@@ -69,7 +78,9 @@ Tracket is built so you can check what it does with your data.
 | Ticket content (titles, descriptions, comments, attachments) | Fetched from Jira when displayed, kept in memory | Attachments and images are marked `no-store`, so they are not written to disk. |
 | Sprocket address and token | System keychain (Windows Credential Manager) | Only the Rust side of the app. The token is only sent to that Sprocket. Only when you sign in to Sprocket. |
 | Ticket key, title, link and worktree folder | Sent to Sprocket when you start a workflow on the ticket | Sprocket and its agents, which read the full ticket from Jira themselves. |
-| Sprocket's runs, steps, approvals and board | Fetched from Sprocket when displayed, kept in memory | Only on this computer. |
+| What you ask an agent to do | Sent to Sprocket with "Ask an agent" | Sprocket and the run's agents. |
+| Sprocket's runs, steps, approvals and board | Fetched from Sprocket when displayed, and every half minute for the tickets' agent states; kept in memory | Only on this computer. |
+| Default workflow per project | The app's local storage | Only on this computer. |
 | A note you post on a run's board | Sent to Sprocket, with your display name | Sprocket and the run's agents. |
 | The prompt for Claude Code | Passed as a command-line argument to `herdr-app` | The ticket key, title and link. It is visible in this computer's process list while the command starts, then goes to Claude Code, which has its own data policy. Only when you use herdr. |
 

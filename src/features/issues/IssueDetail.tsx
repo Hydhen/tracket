@@ -54,7 +54,8 @@ import { JiraFieldValue } from './JiraFieldValue'
 import { TimeTracker } from '@/features/timer/TimeTracker'
 import { AgentsMenu } from '@/features/sprocket/AgentsMenu'
 import { AgentsSection } from '@/features/sprocket/AgentsSection'
-import { useSprocketPrefs, useSprocketReady } from '@/features/sprocket/useSprocket'
+import { isFromSprocket, useSprocketPrefs, useSprocketReady } from '@/features/sprocket/useSprocket'
+import { ticketWorktree } from '@/features/sprocket/worktree'
 import { StatusMenu } from '@/features/transitions/StatusMenu'
 import { useTicketMoves } from '@/features/transitions/movesContext'
 import { StatusPill } from './StatusPill'
@@ -195,18 +196,7 @@ export function IssueDetail({
   // Sprocket's agents work in the ticket's worktree, made here as Start working makes it
   const sprocketReady = useSprocketReady()
   const sprocketPrefs = useSprocketPrefs()
-  const worktreeFolder = async () => {
-    const values = routingFields.length > 0 ? await queryClient.fetchQuery(routingValues(routingFields)) : {}
-    const project = projectOf(values)
-    if (!project) {
-      throw new ApiError('unexpected', 'No project in the settings has the metadata of this ticket: add one in Settings › Quick start.')
-    }
-    const outcome = await api.createWorktree(project.path, issue.key)
-    if (outcome.status === 'conflict') {
-      throw new ApiError('unexpected', "Something is in the way of the ticket's worktree: use Start working once to sort it out.")
-    }
-    return outcome.worktree.folder
-  }
+  const worktreeFolder = () => ticketWorktree(queryClient, issue)
   const copyPopup = useCopyPopup()
 
   // The big title scrolled under the top row: the row shows the title itself from then on
@@ -707,6 +697,11 @@ export function IssueDetail({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2 text-sm">
                         <span className="font-medium">{c.author?.displayName ?? 'Unknown'}</span>
+                        {isFromSprocket(c.bodyHtml) && (
+                          <span className="rounded px-1.5 py-px text-[10px] font-semibold uppercase" style={{ background: 'var(--sp-lit-bg)', color: 'var(--sp-accent)' }}>
+                            via Sprocket
+                          </span>
+                        )}
                         <span className="text-xs text-muted-foreground" title={new Date(c.created).toLocaleString()}>
                           {timeAgo(c.created)}
                           {c.updated !== c.created && ' · edited'}

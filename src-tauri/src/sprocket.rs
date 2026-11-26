@@ -1,5 +1,6 @@
 //! Sprocket, the companion app that runs Claude agent workflows on tickets: signing in to it, and the
-//! few calls the ticket view makes (its workflows, a ticket's runs, starting a run, answering an approval).
+//! few calls Tracket makes (its workflows, the tickets' runs, starting, stopping or retrying a run,
+//! answering an approval, showing a run in Sprocket).
 //!
 //! Like Jira, it is only ever called from here: the interface makes no network calls. The address and
 //! token are kept in the keychain next to the Jira credentials, and the token never reaches the interface.
@@ -188,7 +189,7 @@ pub fn sprocket_sign_out() -> Result<()> {
     forget()
 }
 
-/// The workflows Sprocket offers in Tracket: `[{ id, name, description }]`.
+/// The workflows Sprocket offers in Tracket: `[{ id, name, description, forRequests }]`.
 #[tauri::command]
 pub async fn sprocket_workflows(http: tauri::State<'_, reqwest::Client>) -> Result<Value> {
     let workflows = send(&http, &connection()?, Method::GET, "/v1/workflows?offered=true", None).await?;
@@ -204,6 +205,48 @@ pub async fn sprocket_runs(http: tauri::State<'_, reqwest::Client>, key: String)
     send(&http, &connection()?, Method::GET, &format!("/v1/runs?ticket={key}"), None).await
 }
 
+/// Each ticket's latest run, in a few words (state, what waits for an approval, the failed step). An older
+/// Sprocket without this call gives none, so the list and its chips stay empty rather than erroring.
+#[tauri::command]
+pub async fn sprocket_tickets(http: tauri::State<'_, reqwest::Client>) -> Result<Value> {
+    match send(&http, &connection()?, Method::GET, "/v1/tickets", None).await {
+        Ok(tickets) => Ok(tickets["tickets"].clone()),
+        Err(e) if e.message.contains("404") || e.message.contains("Not Found") => Ok(json!([])),
+        Err(e) => Err(e),
+    }
+}
+
+fn valid_id(id: &str, what: &str) -> Result<()> {
+    if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric()) {
+        return Err(AppError::new("invalidQuery", format!("Invalid {what}")));
+    }
+    Ok(())
+}
+
+/// Stops a run (its agents stop where they are), or closes a failed one.
+#[tauri::command]
+pub async fn sprocket_cancel_run(http: tauri::State<'_, reqwest::Client>, run_id: String, by: String) -> Result<()> {
+    valid_id(&run_id, "run")?;
+    // Names have spaces and accents: encoded as a query
+    let query = Url::parse_with_params("http://x/", &[("by", by.as_str())]).map_err(|e| error(e.to_string()))?;
+    let path = format!("/v1/runs/{run_id}/cancel?{}", query.query().unwrap_or_default());
+    send(&http, &connection()?, Method::POST, &path, None).await.map(drop)
+}
+
+/// Runs a failed or interrupted step again.
+#[tauri::command]
+pub async fn sprocket_retry_job(http: tauri::State<'_, reqwest::Client>, job_id: String) -> Result<()> {
+    valid_id(&job_id, "step")?;
+    send(&http, &connection()?, Method::POST, &format!("/v1/jobs/{job_id}/retry"), None).await.map(drop)
+}
+
+/// Brings Sprocket's window up on the run.
+#[tauri::command]
+pub async fn sprocket_show_run(http: tauri::State<'_, reqwest::Client>, run_id: String) -> Result<()> {
+    valid_id(&run_id, "run")?;
+    send(&http, &connection()?, Method::POST, &format!("/v1/runs/{run_id}/show"), None).await.map(drop)
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartRun {
@@ -214,9 +257,13 @@ pub struct StartRun {
     /// The ticket's worktree
     folder: String,
     started_by: String,
+    /// What to do, for a workflow that runs requests ("Ask an agent")
+    #[serde(default)]
+    request: Option<String>,
 }
 
-/// Starts a workflow on the ticket, in its worktree. Sends the ticket's key, title and link, and the folder.
+/// Starts a workflow on the ticket, in its worktree. Sends the ticket's key, title and link, the folder, and
+/// what was asked when there is a request.
 #[tauri::command]
 pub async fn sprocket_start_run(http: tauri::State<'_, reqwest::Client>, run: StartRun) -> Result<Value> {
     if !crate::workspace::valid_issue_key(&run.key) {
@@ -227,6 +274,7 @@ pub async fn sprocket_start_run(http: tauri::State<'_, reqwest::Client>, run: St
         "ticket": { "key": run.key, "title": run.title, "url": run.url },
         "folder": run.folder,
         "startedBy": run.started_by,
+        "request": run.request,
     });
     send(&http, &connection()?, Method::POST, "/v1/runs", Some(body)).await
 }
@@ -240,9 +288,7 @@ pub async fn sprocket_decide(
     reason: Option<String>,
     by: String,
 ) -> Result<()> {
-    if id.is_empty() || !id.chars().all(|c| c.is_ascii_alphanumeric()) {
-        return Err(AppError::new("invalidQuery", "Invalid approval"));
-    }
+    valid_id(&id, "approval")?;
     let body = json!({ "decision": if approve { "approve" } else { "reject" }, "reason": reason, "by": by });
     send(&http, &connection()?, Method::POST, &format!("/v1/approvals/{id}"), Some(body)).await.map(drop)
 }
@@ -256,9 +302,7 @@ pub async fn sprocket_post_note(
     to: Option<String>,
     by: String,
 ) -> Result<()> {
-    if run_id.is_empty() || !run_id.chars().all(|c| c.is_ascii_alphanumeric()) {
-        return Err(AppError::new("invalidQuery", "Invalid run"));
-    }
+    valid_id(&run_id, "run")?;
     let note = json!({ "body": body, "to": to, "by": by });
     send(&http, &connection()?, Method::POST, &format!("/v1/runs/{run_id}/notes"), Some(note)).await.map(drop)
 }

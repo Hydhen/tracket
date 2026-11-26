@@ -30,6 +30,10 @@ import { TransitionInputDialog } from '@/features/transitions/TransitionInputDia
 import { useMovesController } from '@/features/transitions/useMovesController'
 import { IssueTree } from '@/features/tree/IssueTree'
 import { useRootIssues, useTreeState } from '@/features/tree/useTree'
+import { AgentsDropBand } from '@/features/sprocket/AgentsDropBand'
+import { AgentsTabButton } from '@/features/sprocket/AgentsTab'
+import { useAgentsTabShown, useAgentsTickets } from '@/features/sprocket/useSprocket'
+import { SprocketLayer } from '@/features/sprocket/SprocketLayer'
 import { api, type IssueSummary, type Session } from '@/lib/api'
 import { appStorage } from '@/lib/storage'
 import { cn } from '@/lib/utils'
@@ -40,20 +44,22 @@ const ISSUE_KEY = /^[A-Z][A-Z0-9_]*-\d+$/
 /**
  * 'timers' has no tab: the sidebar's timer summary leads to it, and it isn't restored on launch.
  * 'board' puts a Jira board in the main pane, with the Open list kept in the sidebar to take tickets into.
+ * 'agents' is the Open list cut down to the tickets a Sprocket agent works on (signed in to Sprocket only).
  */
-type View = ListView | 'tree' | 'board' | 'timers'
+type View = ListView | 'tree' | 'board' | 'agents' | 'timers'
 
 const VIEWS: { id: View; label: string; empty: string }[] = [
   { id: 'open', label: 'Open', empty: 'Nothing assigned to you. Enjoy the quiet.' },
   { id: 'closed', label: 'Closed', empty: 'No closed or resolved tickets assigned to you.' },
   { id: 'tree', label: 'Tree', empty: '' },
   { id: 'board', label: 'Board', empty: 'Nothing assigned to you yet. Drag tickets here from the board.' },
+  { id: 'agents', label: 'Agents', empty: 'No agent works on your tickets. Drag tickets onto Hand to agents to start one.' },
 ]
 
 function loadView(): View {
   try {
     const saved = appStorage.getItem(VIEW_KEY)
-    return saved === 'closed' || saved === 'tree' || saved === 'board' ? saved : 'open'
+    return saved === 'closed' || saved === 'tree' || saved === 'board' || saved === 'agents' ? saved : 'open'
   } catch {
     return 'open'
   }
@@ -84,7 +90,11 @@ export function MainShell({ session }: { session: Session }) {
   const [sideKey, setSideKey] = useState<string>()
   // A red dot on the taskbar icon while a timer runs, also when the window is the small pill
   useTimerBadge()
-  const [view, setView] = useState(loadView)
+  const [savedView, setView] = useState(loadView)
+  // The Agents tab exists only while signed in to Sprocket: without it, its list is the Open one
+  const agentsShown = useAgentsTabShown()
+  const view = savedView === 'agents' && !agentsShown ? 'open' : savedView
+  const isAgents = view === 'agents'
   const [sideLayout, setSideLayout] = useState<SideLayout>(layoutForWindow)
   const stacked = sideLayout === 'rows'
   // Double-clicking the divider between the main and side views evens them out
@@ -144,12 +154,15 @@ export function MainShell({ session }: { session: Session }) {
   const [extras, setExtras] = useState<IssueSummary[]>([])
 
   const issues = data?.issues ?? []
+  const agentsTickets = useAgentsTickets(issues)
+  // What the sidebar lists: the Agents tab shows the tickets an agent works on
+  const listed = isAgents ? agentsTickets.listed : issues
   const known = [...issues, ...extras.filter((e) => !issues.some((i) => i.key === e.key))]
   // Fall back to the first issue when nothing is selected or the selection left the list.
   // The board fills the main pane: a ticket opens beside it, in the side view.
   const selected = isBoard
     ? undefined
-    : (known.find((i) => i.key === selectedKey) ?? (isList ? issues[0] : undefined))
+    : (known.find((i) => i.key === selectedKey) ?? (isList ? listed[0] : undefined))
   // The side view only shows while its issue is known and differs from the main one
   const side = known.find((i) => i.key === sideKey && i.key !== selected?.key)
 
@@ -266,7 +279,17 @@ export function MainShell({ session }: { session: Session }) {
 
           <div className="flex items-center gap-2 border-b px-4 py-1.5">
             <div role="tablist" aria-label="Ticket view" className="flex rounded-md bg-muted p-0.5">
-              {VIEWS.map((v) => (
+              {VIEWS.filter((v) => v.id !== 'agents' || agentsShown).map((v) =>
+                v.id === 'agents' ? (
+                  <AgentsTabButton
+                    key={v.id}
+                    selected={isAgents}
+                    needsYou={agentsTickets.needsYou}
+                    onPick={() => changeView('agents')}
+                    dragged={moves.dragging.size > 0 ? overlay.issues : null}
+                    onDropped={overlay.close}
+                  />
+                ) : (
                 <button
                   key={v.id}
                   role="tab"
@@ -279,12 +302,13 @@ export function MainShell({ session }: { session: Session }) {
                 >
                   {v.label}
                 </button>
-              ))}
+                ),
+              )}
             </div>
             {isList && data && (
               <span className="text-xs text-muted-foreground">
-                {issues.length}
-                {data.hasMore ? '+' : ''}
+                {listed.length}
+                {data.hasMore && !isAgents ? '+' : ''}
               </span>
             )}
             {isTree && (
@@ -359,12 +383,12 @@ export function MainShell({ session }: { session: Session }) {
                 Retry
               </Button>
             </Message>
-          ) : issues.length === 0 ? (
+          ) : listed.length === 0 ? (
             <Message>{VIEWS.find((v) => v.id === view)?.empty}</Message>
           ) : (
             <div className={cn('flex min-h-0 flex-1 flex-col', isPlaceholderData && 'opacity-50')}>
               <IssueList
-                issues={issues}
+                issues={listed}
                 selectedKey={selected?.key}
                 sideKey={side?.key}
                 // The board has the main pane: a ticket of the list opens beside it
@@ -523,11 +547,13 @@ export function MainShell({ session }: { session: Session }) {
           onEdit={overlay.onEdit}
           onAssign={overlay.onAssign}
           onUnassign={overlay.onUnassign}
+          extra={<AgentsDropBand issues={overlay.issues} onDone={overlay.close} />}
         />
         {assignPicker.issues && (
           <AssignPicker issues={assignPicker.issues} onPick={assignPicker.pick} onCancel={assignPicker.cancel} />
         )}
         <MoveToast toast={toast} onUndo={movesController.undo} onDismiss={movesController.dismissToast} />
+        <SprocketLayer />
         <UpdateNotice />
         </div>
 

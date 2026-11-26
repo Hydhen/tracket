@@ -65,8 +65,9 @@ function AccountSettings({ site }: { site?: string }) {
           When you start working with herdr, the ticket key, title and link are sent to Claude Code as its first message.
         </li>
         <li>
-          When you start a Sprocket workflow, the ticket key, title, link and worktree folder are sent to Sprocket. Signing
-          out also removes the Sprocket connection.
+          When you start a Sprocket workflow, the ticket key, title, link and worktree folder are sent to Sprocket, with
+          what you wrote when you ask an agent. Tracket asks Sprocket for your tickets' agent states every half minute.
+          Signing out also removes the Sprocket connection.
         </li>
       </ul>
 

@@ -186,6 +186,16 @@
     --zone-unassign: #fdba74;
     --zone-unassign-tint: #2a1d12;
     --zone-unassign-line: #5a4a3a;
+    /* Sprocket's band: hand tickets to agents, and act on their runs */
+    --zone-agents: #7dd3fc;
+    --zone-agents-tint: #0e2633;
+    --zone-agents-line: #1f4a5e;
+    --zone-approve: #5ee38d;
+    --zone-approve-tint: #0f2e1c;
+    --zone-retry: #7db4ff;
+    --zone-retry-tint: #12264a;
+    --zone-stop: #fca5a5;
+    --zone-stop-tint: #2e1414;
 }
 
 .dark {
