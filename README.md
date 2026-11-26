@@ -42,6 +42,31 @@ a folder picker. The folder proposed is `~/.herdr/worktrees` for herdr and `~/.t
 
 You link each Jira project to a local repository in Settings > Quick start. Git must be installed.
 
+### Sprocket agents (optional)
+
+[Sprocket](https://github.com/LucMenard/Sprocket) is a companion app that runs Claude agent workflows on tickets:
+plan, wait for your approval, implement, open a pull request. When you sign in to it in Settings > Sprocket, a ticket
+gets:
+
+- an **Agents** button next to Start working, to start one of Sprocket's workflows on the ticket. The ticket's worktree
+  is made first, as Start working makes it, and the agents work in it;
+- an **Agents** section under the ticket's fields: the latest run, its steps, the agents at work (a team's members
+  too), what waits for your approval, which you can approve or reject (with a reason sent back to the agent) from
+  there, and the run's board: the notes its agents leave each other, where you can post one for them. **Open run**
+  brings Sprocket up on the run, and a failed run can be retried or closed;
+- an **Agents** tab in the sidebar: your tickets an agent works on, with a dot when one needs you. Each row of the
+  lists says it too (Needs you, Agent running, Run failed);
+- **Hand to agents** while dragging tickets: drop them on one of Sprocket's workflows (each ticket gets its own run, in
+  its own worktree), on **Ask an agent…** to say in words what you want done, or on Approve, Retry or Stop for the runs
+  they have. Dropping them on the Agents tab starts each project's default workflow, set in Settings > Sprocket;
+- a Windows notification when an agent waits for your approval or a run fails;
+- comments a workflow posted on the ticket marked **via Sprocket**.
+
+Each of the ticket section, the tab, the notifications and the button can be turned off in Settings > Sprocket.
+Nothing shows until you sign in. Sprocket runs on this computer
+(`http://127.0.0.1:47821`), and Tracket reads Sprocket's token from the keychain when you sign in, so there is nothing
+to paste; a Sprocket elsewhere needs https and its token.
+
 ## Your data
 
 Tracket is built so you can check what it does with your data.
@@ -51,10 +76,17 @@ Tracket is built so you can check what it does with your data.
 | Jira API token, email, site | System keychain (Windows Credential Manager) | Only the Rust side of the app. The interface never gets the token, and it is only sent to your Jira site. |
 | Timers, settings, folders linked to projects, which tickets are expanded | The app's local storage, in `%LOCALAPPDATA%\com.tracket.app` | Only on this computer. It holds ticket keys, field names and choices and folder paths, never ticket titles or descriptions. |
 | Ticket content (titles, descriptions, comments, attachments) | Fetched from Jira when displayed, kept in memory | Attachments and images are marked `no-store`, so they are not written to disk. |
+| Sprocket address and token | System keychain (Windows Credential Manager) | Only the Rust side of the app. The token is only sent to that Sprocket. Only when you sign in to Sprocket. |
+| Ticket key, title, link and worktree folder | Sent to Sprocket when you start a workflow on the ticket | Sprocket and its agents, which read the full ticket from Jira themselves. |
+| What you ask an agent to do | Sent to Sprocket with "Ask an agent" | Sprocket and the run's agents. |
+| Sprocket's runs, steps, approvals and board | Fetched from Sprocket when displayed, and every half minute for the tickets' agent states; kept in memory | Only on this computer. |
+| Default workflow per project | The app's local storage | Only on this computer. |
+| A note you post on a run's board | Sent to Sprocket, with your display name | Sprocket and the run's agents. |
 | The prompt for Claude Code | Passed as a command-line argument to `herdr-app` | The ticket key, title and link. It is visible in this computer's process list while the command starts, then goes to Claude Code, which has its own data policy. Only when you use herdr. |
 
 - **No telemetry.** There is no analytics and no crash reporting. The network destinations are your Jira site
-  (plus the avatar and image hosts Atlassian serves from) and github.com, to look for updates.
+  (plus the avatar and image hosts Atlassian serves from) and github.com, to look for updates, and, once you sign in
+  to it, your Sprocket.
 - **Update checks** ask `github.com/Hydhen/tracket` for the latest release, once when the app starts. GitHub sees
   your IP address, like any web request. Nothing about you or your Jira is sent. Turn it off in Settings > About.
 - **Signing out erases everything.** Settings > Account > Sign out removes the token from the keychain and wipes

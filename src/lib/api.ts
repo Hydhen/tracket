@@ -244,7 +244,86 @@ export type ApiErrorKind =
   | 'notFound'
   | 'network'
   | 'keychain'
+  | 'sprocket'
   | 'unexpected'
+
+/** The connection to Sprocket, the companion app that runs agent workflows on tickets */
+export interface SprocketSession {
+  address: string
+  /** False when Sprocket doesn't answer (closed, or its token changed) */
+  reachable: boolean
+  version: string | null
+  agentsReady: boolean
+  message: string | null
+}
+
+export interface SprocketWorkflow {
+  id: string
+  name: string
+  description: string
+  /** Runs what you ask in words: "Ask an agent" starts it with your request */
+  forRequests?: boolean
+}
+
+/** A ticket's latest Sprocket run, in a few words: what its row, the Agents tab and the drag targets show */
+export interface SprocketTicket {
+  ticketKey: string
+  runId: string
+  number: number
+  workflowName: string
+  state: SprocketRunState
+  startedAt: string
+  /** The oldest decision waiting, if any */
+  approvalId: string | null
+  /** `gate`: a step's approval; `tool`: an agent asking to use a tool */
+  approvalKind: 'gate' | 'tool' | null
+  approvalSummary: string | null
+  /** The step that failed or was interrupted, to retry it */
+  failedJobId: string | null
+  /** How many of its agents work now */
+  working: number
+}
+
+export type SprocketRunState = 'running' | 'waiting' | 'passed' | 'failed' | 'cancelled' | 'interrupted'
+export type SprocketJobState = 'running' | 'waiting' | 'done' | 'failed' | 'rejected' | 'stopped' | 'interrupted'
+
+/** A step of a Sprocket workflow; a condition holds its branches and a loop its steps. */
+export interface SprocketStep {
+  id: string
+  kind: 'agent' | 'approval' | 'action' | 'condition' | 'forEach' | 'parallel' | 'team'
+  agent: string | null
+  then?: SprocketStep[]
+  else?: SprocketStep[]
+  steps?: SprocketStep[]
+  /** A parallel group's branches */
+  branches?: SprocketStep[][]
+  /** A team step: agent types working on it together */
+  team?: { members: string[]; lead: string } | null
+}
+
+/** A run as Sprocket describes it; only what the ticket view shows */
+export interface SprocketRun {
+  id: string
+  workflowName: string
+  number: number
+  startedBy: string
+  /** What was asked, on a run started with "Ask an agent" */
+  request?: string | null
+  state: SprocketRunState
+  startedAt: string
+  steps: SprocketStep[]
+  /**
+   * Oldest first. `scope` names the loop item a job is for (`each[2]/`, empty outside loops), and a job done again
+   * (retried, or sent back by a rejection) leaves the earlier one `superseded`.
+   */
+  jobs: { id: string; stepId: string; kind?: string; state: SprocketJobState; attempt: number; scope?: string; superseded?: boolean }[]
+  /** Pending only */
+  approvals: { id: string; kind: 'gate' | 'tool'; jobId: string | null; summary: string; toolName: string | null }[]
+  /** Whether its workflow has a board (older Sprocket versions: absent) */
+  board?: boolean
+  /** The run's board, oldest first: notes by its agents (with their agent type) and by people */
+  notes?: { id: number; at: string; author: string; agent: string | null; to: string | null; body: string }[]
+}
 
 export class ApiError extends Error {
   kind: ApiErrorKind
@@ -344,4 +423,24 @@ export const api = {
   setTimerBadge: (running: boolean) => call<void>('set_timer_badge', { running }),
   addWorklog: (key: string, seconds: number, started: string, comment?: string) =>
     call<void>('add_worklog', { key, seconds, started, comment }),
+  /** Without a token, Sprocket's own is used when it runs on this computer */
+  sprocketSignIn: (address: string, token?: string) =>
+    call<SprocketSession>('sprocket_sign_in', { address, token: token || null }),
+  /** null when not signed in */
+  sprocketSession: () => call<SprocketSession | null>('sprocket_session'),
+  sprocketSignOut: () => call<void>('sprocket_sign_out'),
+  sprocketWorkflows: () => call<SprocketWorkflow[]>('sprocket_workflows'),
+  /** The ticket's runs, newest first */
+  sprocketRuns: (key: string) => call<SprocketRun[]>('sprocket_runs', { key }),
+  sprocketStartRun: (run: { workflow: string; key: string; title: string; url: string; folder: string; startedBy: string; request?: string }) =>
+    call<SprocketRun>('sprocket_start_run', { run }),
+  sprocketTickets: () => call<SprocketTicket[]>('sprocket_tickets'),
+  sprocketCancelRun: (runId: string, by: string) => call<void>('sprocket_cancel_run', { runId, by }),
+  sprocketRetryJob: (jobId: string) => call<void>('sprocket_retry_job', { jobId }),
+  /** Brings Sprocket's window up on the run */
+  sprocketShowRun: (runId: string) => call<void>('sprocket_show_run', { runId }),
+  sprocketDecide: (id: string, approve: boolean, by: string, reason?: string) =>
+    call<void>('sprocket_decide', { id, approve, by, reason: reason || null }),
+  sprocketPostNote: (runId: string, body: string, by: string, to?: string) =>
+    call<void>('sprocket_post_note', { runId, body, by, to: to || null }),
 }

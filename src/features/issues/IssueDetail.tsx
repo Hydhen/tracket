@@ -52,6 +52,10 @@ import { Icon } from './IssueList'
 import { isWideValue } from './fieldValue'
 import { JiraFieldValue } from './JiraFieldValue'
 import { TimeTracker } from '@/features/timer/TimeTracker'
+import { AgentsMenu } from '@/features/sprocket/AgentsMenu'
+import { AgentsSection } from '@/features/sprocket/AgentsSection'
+import { isFromSprocket, useSprocketPrefs, useSprocketReady } from '@/features/sprocket/useSprocket'
+import { ticketWorktree } from '@/features/sprocket/worktree'
 import { StatusMenu } from '@/features/transitions/StatusMenu'
 import { useTicketMoves } from '@/features/transitions/movesContext'
 import { StatusPill } from './StatusPill'
@@ -188,6 +192,11 @@ export function IssueDetail({
     },
   })
   const started = startWork.data?.kind === 'started' ? startWork.data : undefined
+
+  // Sprocket's agents work in the ticket's worktree, made here as Start working makes it
+  const sprocketReady = useSprocketReady()
+  const sprocketPrefs = useSprocketPrefs()
+  const worktreeFolder = () => ticketWorktree(queryClient, issue)
   const copyPopup = useCopyPopup()
 
   // The big title scrolled under the top row: the row shows the title itself from then on
@@ -387,6 +396,9 @@ export function IssueDetail({
               </div>
             </div>
             <div className="ml-auto flex shrink-0 gap-1">
+              {sprocketReady && sprocketPrefs.button && (
+                <AgentsMenu issue={issue} worktreeFolder={worktreeFolder} trigger="header" />
+              )}
               <Button
                 variant="outline"
                 size="icon"
@@ -533,6 +545,8 @@ export function IssueDetail({
         )}
 
         <TimeTracker issueKey={issue.key} />
+
+        {sprocketReady && sprocketPrefs.section && <AgentsSection issue={issue} worktreeFolder={worktreeFolder} />}
 
         {isPending && (
           <div className="mt-8 flex justify-center">
@@ -683,6 +697,11 @@ export function IssueDetail({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2 text-sm">
                         <span className="font-medium">{c.author?.displayName ?? 'Unknown'}</span>
+                        {isFromSprocket(c.bodyHtml) && (
+                          <span className="rounded px-1.5 py-px text-[10px] font-semibold uppercase" style={{ background: 'var(--sp-lit-bg)', color: 'var(--sp-accent)' }}>
+                            via Sprocket
+                          </span>
+                        )}
                         <span className="text-xs text-muted-foreground" title={new Date(c.created).toLocaleString()}>
                           {timeAgo(c.created)}
                           {c.updated !== c.created && ' · edited'}

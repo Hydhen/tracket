@@ -6,6 +6,7 @@ import { StatusPill } from './StatusPill'
 import { TimerDot } from '@/features/timer/RecordingDot'
 import { useRowMoves } from '@/features/transitions/useRowMoves'
 import { TicketKey } from './TicketKey'
+import { AgentChip } from '@/features/sprocket/AgentsTab'
 
 const isReview = (i: IssueSummary) => i.status.category !== 'done' && /review|revue/i.test(i.status.name)
 
@@ -73,6 +74,7 @@ function IssueRow({
               <Icon url={i.priority.iconUrl} />
             </span>
           )}
+          <AgentChip issueKey={i.key} />
           {i.dueDate && (
             <span
               className={cn('ml-auto', isOverdue(i.dueDate) ? 'font-medium text-destructive' : 'text-muted-foreground')}

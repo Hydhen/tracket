@@ -186,6 +186,16 @@
     --zone-unassign: #fdba74;
     --zone-unassign-tint: #2a1d12;
     --zone-unassign-line: #5a4a3a;
+    /* Sprocket's band: hand tickets to agents, and act on their runs */
+    --zone-agents: #7dd3fc;
+    --zone-agents-tint: #0e2633;
+    --zone-agents-line: #1f4a5e;
+    --zone-approve: #5ee38d;
+    --zone-approve-tint: #0f2e1c;
+    --zone-retry: #7db4ff;
+    --zone-retry-tint: #12264a;
+    --zone-stop: #fca5a5;
+    --zone-stop-tint: #2e1414;
 }
 
 .dark {
@@ -875,4 +885,33 @@ body::before {
   .copied-popup {
     animation: none;
   }
+}
+
+/* Sprocket's run on a ticket: the tones of its stages, as the design mockups draw them */
+:root {
+    --sp-accent: #D08850;
+    --sp-ok: #2F8F5B;
+    --sp-run: #3B82F6;
+    --sp-idle: #A1A1AA;
+    --sp-lit: #C2410C;
+    --sp-lit-bg: rgba(224, 86, 26, 0.10);
+    --sp-lit-border: rgba(224, 86, 26, 0.45);
+    --sp-act-bg: rgba(59, 130, 246, 0.15);
+    --sp-act-fg: #1D4ED8;
+    --sp-done-bg: rgba(34, 197, 94, 0.15);
+    --sp-done-fg: #15803D;
+    --sp-fail: #B91C1C;
+    --sp-fail-bg: rgba(239, 68, 68, 0.12);
+}
+.dark {
+    --sp-ok: #5EE38D;
+    --sp-run: #7DB4FF;
+    --sp-idle: #8A8A90;
+    --sp-lit: #FFB27A;
+    --sp-lit-bg: rgba(255, 90, 31, 0.12);
+    --sp-lit-border: rgba(255, 178, 122, 0.45);
+    --sp-act-fg: #93C5FD;
+    --sp-done-fg: #86EFAC;
+    --sp-fail: #F87171;
+    --sp-fail-bg: rgba(239, 68, 68, 0.15);
 }

@@ -1,4 +1,4 @@
-import { CircleCheck, Info, ListChecks, LogOut, PanelTop, Palette, Rocket, UserRoundCheck, X, type LucideIcon } from 'lucide-react'
+import { CircleCheck, Cog, Info, ListChecks, LogOut, PanelTop, Palette, Rocket, UserRoundCheck, X, type LucideIcon } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { Spinner } from '@/components/Spinner'
@@ -9,12 +9,13 @@ import { BulkEditSettings } from '@/features/bulk/BulkEditSettings'
 import { elapsedOf, useNow, useTimers } from '@/features/timer/timerStore'
 import { AboutSettings } from '@/features/update/AboutSettings'
 import { QuickStartSettings } from '@/features/workspace/QuickStartSettings'
+import { SprocketSettings } from '@/features/sprocket/SprocketSettings'
 import { cn } from '@/lib/utils'
 import { ResolveDefaultsSettings } from '@/features/transitions/ResolveDefaultsSettings'
 import { AppearanceSettings } from './AppearanceSettings'
 import { TicketDetailsSettings } from './TicketDetailsSettings'
 
-type Category = 'appearance' | 'details' | 'bulk' | 'resolve' | 'assignees' | 'quickstart' | 'account' | 'about'
+type Category = 'appearance' | 'details' | 'bulk' | 'resolve' | 'assignees' | 'quickstart' | 'sprocket' | 'account' | 'about'
 
 const CATEGORIES: { id: Category; label: string; icon: LucideIcon }[] = [
   { id: 'appearance', label: 'Appearance', icon: Palette },
@@ -23,6 +24,7 @@ const CATEGORIES: { id: Category; label: string; icon: LucideIcon }[] = [
   { id: 'resolve', label: 'Resolve defaults', icon: CircleCheck },
   { id: 'assignees', label: 'Favorite assignees', icon: UserRoundCheck },
   { id: 'quickstart', label: 'Quick start', icon: Rocket },
+  { id: 'sprocket', label: 'Sprocket', icon: Cog },
   { id: 'account', label: 'Account', icon: LogOut },
   { id: 'about', label: 'About', icon: Info },
 ]
@@ -55,9 +57,17 @@ function AccountSettings({ site }: { site?: string }) {
           Timers, your settings and the folders linked to your projects are stored by the app on this computer. They hold
           ticket keys and field choices, never ticket titles or descriptions.
         </li>
-        <li>Tracket talks to your Jira site only. There is no analytics and no other server.</li>
+        <li>
+          Tracket talks to your Jira site only, and to Sprocket once you sign in to it. There is no analytics and no other
+          server.
+        </li>
         <li>
           When you start working with herdr, the ticket key, title and link are sent to Claude Code as its first message.
+        </li>
+        <li>
+          When you start a Sprocket workflow, the ticket key, title, link and worktree folder are sent to Sprocket, with
+          what you wrote when you ask an agent. Tracket asks Sprocket for your tickets' agent states every half minute.
+          Signing out also removes the Sprocket connection.
         </li>
       </ul>
 
@@ -163,6 +173,7 @@ export function SettingsDialog({
               >
                 <CategoryIcon className="size-4 shrink-0" />
                 {label}
+                {id === 'sprocket' && <span className="ml-auto text-[10px] font-semibold uppercase text-(--sp-accent)">New</span>}
               </button>
             ))}
           </div>
@@ -179,6 +190,7 @@ export function SettingsDialog({
             {category === 'resolve' && <ResolveDefaultsSettings />}
             {category === 'assignees' && <AssigneeSettings />}
             {category === 'quickstart' && <QuickStartSettings initialProject={linkProject} />}
+            {category === 'sprocket' && <SprocketSettings />}
             {category === 'account' && <AccountSettings site={site} />}
             {category === 'about' && <AboutSettings />}
           </div>

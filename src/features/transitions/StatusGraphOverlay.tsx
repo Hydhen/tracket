@@ -1,6 +1,6 @@
 import { useQueries } from '@tanstack/react-query'
 import { SlidersHorizontal, UserMinus, UserPlus } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Spinner } from '@/components/Spinner'
 import { describeFields, editMetaQuery, sharedFields, statusGroups } from '@/features/bulk/sharedFields'
 import type { IssueSummary, Transition } from '@/lib/api'
@@ -50,6 +50,7 @@ function commonTargets(current: Status, lists: Transition[][]): Status[] {
  * - below it, the workflow graph: the current status on the left, each status they can move to
  *   on the right. Releasing on one moves the tickets there. Tickets in different statuses can't
  *   move together, so they get a message instead of the graph.
+ * - `extra`, at the bottom: more places from elsewhere (Sprocket's, when signed in to it).
  * The overlay itself accepts no drops, so releasing anywhere else cancels.
  */
 export function StatusGraphOverlay({
@@ -59,6 +60,7 @@ export function StatusGraphOverlay({
   onEdit,
   onAssign,
   onUnassign,
+  extra,
 }: {
   open: boolean
   issues: IssueSummary[]
@@ -66,6 +68,7 @@ export function StatusGraphOverlay({
   onEdit: () => void
   onAssign: () => void
   onUnassign: () => void
+  extra?: ReactNode
 }) {
   const groups = statusGroups(issues)
   const mixed = groups.length > 1
@@ -398,6 +401,7 @@ export function StatusGraphOverlay({
           <div className="mt-5 text-xs text-overlay-muted">Release anywhere else to cancel</div>
         </div>
       </div>
+      {extra}
     </div>
   )
 }
