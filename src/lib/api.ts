@@ -270,11 +270,15 @@ export type SprocketJobState = 'running' | 'waiting' | 'done' | 'failed' | 'reje
 /** A step of a Sprocket workflow; a condition holds its branches and a loop its steps. */
 export interface SprocketStep {
   id: string
-  kind: 'agent' | 'approval' | 'action' | 'condition' | 'forEach'
+  kind: 'agent' | 'approval' | 'action' | 'condition' | 'forEach' | 'parallel' | 'team'
   agent: string | null
   then?: SprocketStep[]
   else?: SprocketStep[]
   steps?: SprocketStep[]
+  /** A parallel group's branches */
+  branches?: SprocketStep[][]
+  /** A team step: agent types working on it together */
+  team?: { members: string[]; lead: string } | null
 }
 
 export interface SprocketRun {

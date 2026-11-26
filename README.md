@@ -50,8 +50,9 @@ gets:
 
 - an **Agents** button next to Start working, to start one of Sprocket's workflows on the ticket. The ticket's worktree
   is made first, as Start working makes it, and the agents work in it;
-- an **Agents** section under the ticket's fields: the latest run, its steps, and what waits for your approval, which
-  you can approve or reject (with a reason sent back to the agent) from there.
+- an **Agents** section under the ticket's fields: the latest run, its steps, the agents at work (a team's members
+  too), what waits for your approval, which you can approve or reject (with a reason sent back to the agent) from
+  there, and the run's board: the notes its agents leave each other, where you can post one for them.
 
 Both can be turned off in Settings > Sprocket. Nothing shows until you sign in. Sprocket runs on this computer
 (`http://127.0.0.1:47821`), and Tracket reads Sprocket's token from the keychain when you sign in, so there is nothing
@@ -68,7 +69,8 @@ Tracket is built so you can check what it does with your data.
 | Ticket content (titles, descriptions, comments, attachments) | Fetched from Jira when displayed, kept in memory | Attachments and images are marked `no-store`, so they are not written to disk. |
 | Sprocket address and token | System keychain (Windows Credential Manager) | Only the Rust side of the app. The token is only sent to that Sprocket. Only when you sign in to Sprocket. |
 | Ticket key, title, link and worktree folder | Sent to Sprocket when you start a workflow on the ticket | Sprocket and its agents, which read the full ticket from Jira themselves. |
-| Sprocket's runs, steps and approvals | Fetched from Sprocket when displayed, kept in memory | Only on this computer. |
+| Sprocket's runs, steps, approvals and board | Fetched from Sprocket when displayed, kept in memory | Only on this computer. |
+| A note you post on a run's board | Sent to Sprocket, with your display name | Sprocket and the run's agents. |
 | The prompt for Claude Code | Passed as a command-line argument to `herdr-app` | The ticket key, title and link. It is visible in this computer's process list while the command starts, then goes to Claude Code, which has its own data policy. Only when you use herdr. |
 
 - **No telemetry.** There is no analytics and no crash reporting. The network destinations are your Jira site

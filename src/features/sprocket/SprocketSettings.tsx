@@ -117,7 +117,7 @@ export function SprocketSettings() {
           <label key={key} className="flex cursor-pointer items-start gap-2.5">
             <input
               type="checkbox"
-              className="mt-0.5 size-4 accent-[#D08850]"
+              className="mt-0.5 size-4 accent-(--sp-accent)"
               checked={prefs[key]}
               onChange={(e) => prefs.set({ [key]: e.target.checked })}
             />

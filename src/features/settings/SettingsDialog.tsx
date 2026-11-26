@@ -172,7 +172,7 @@ export function SettingsDialog({
               >
                 <CategoryIcon className="size-4 shrink-0" />
                 {label}
-                {id === 'sprocket' && <span className="ml-auto text-[10px] font-semibold uppercase text-[#D08850]">New</span>}
+                {id === 'sprocket' && <span className="ml-auto text-[10px] font-semibold uppercase text-(--sp-accent)">New</span>}
               </button>
             ))}
           </div>

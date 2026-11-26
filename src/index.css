@@ -879,6 +879,7 @@ body::before {
 
 /* Sprocket's run on a ticket: the tones of its stages, as the design mockups draw them */
 :root {
+    --sp-accent: #D08850;
     --sp-ok: #2F8F5B;
     --sp-run: #3B82F6;
     --sp-idle: #A1A1AA;

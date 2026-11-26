@@ -55,7 +55,16 @@ const stepState = (run: SprocketRun, stepId: string): StepState => run.jobs.filt
 
 /** Every step, those inside conditions and loops too. */
 const allSteps = (steps: SprocketStep[]): SprocketStep[] =>
-  steps.flatMap((s) => [s, ...allSteps([...(s.then ?? []), ...(s.else ?? []), ...(s.steps ?? [])])])
+  steps.flatMap((s) => [s, ...allSteps([...(s.then ?? []), ...(s.else ?? []), ...(s.steps ?? []), ...(s.branches ?? []).flat()])])
+
+/**
+ * Who works in a run: each step's agent type, and each member of a team step. A team member's jobs, like the
+ * answers an agent asked another agent type for, have the step id `<step>~<agent type>`.
+ */
+const workers = (run: SprocketRun) =>
+  allSteps(run.steps).flatMap((s) =>
+    s.team ? s.team.members.map((m) => ({ key: `${s.id}~${m}`, agent: m, stepId: `${s.id}~${m}` })) : s.agent ? [{ key: s.id, agent: s.agent, stepId: s.id }] : [],
+  )
 
 /** A step or tool call waiting for someone, with Approve and Reject… (which asks for a reason first). */
 function Waiting({ run, approval }: { run: SprocketRun; approval: SprocketRun['approvals'][number] }) {
@@ -68,10 +77,11 @@ function Waiting({ run, approval }: { run: SprocketRun; approval: SprocketRun['a
     onSettled: () => queryClient.invalidateQueries({ queryKey: ['sprocket-runs'] }),
   })
   const job = run.jobs.find((j) => j.id === approval.jobId)
-  const step = allSteps(run.steps).find((s) => s.id === job?.stepId)
+  const [stepId, asked] = (job?.stepId ?? '').split('~')
+  const step = allSteps(run.steps).find((s) => s.id === stepId)
   const title =
     approval.kind === 'tool'
-      ? `${step?.agent ?? 'An agent'} wants to use ${approval.toolName}`
+      ? `${asked ?? step?.agent ?? 'An agent'} wants to use ${approval.toolName}`
       : `${step?.id ?? 'A step'} waits for your approval`
   const summary = approval.kind === 'tool' ? '' : approval.summary
 
@@ -177,7 +187,7 @@ export function AgentsSection({ issue, worktreeFolder }: { issue: IssueSummary; 
                     </span>
                   </li>
                   {i < run.steps.length - 1 && (
-                    <svg aria-hidden viewBox="0 0 24 24" width="14" height="26" fill="none" stroke={passed ? '#D08850' : 'var(--sp-idle)'} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                    <svg aria-hidden viewBox="0 0 24 24" width="14" height="26" fill="none" stroke={passed ? 'var(--sp-accent)' : 'var(--sp-idle)'} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                       <path d="M9 6l6 6-6 6" />
                     </svg>
                   )}
@@ -191,18 +201,16 @@ export function AgentsSection({ issue, worktreeFolder }: { issue: IssueSummary; 
           ))}
 
           <div className="flex flex-wrap gap-x-3.5 gap-y-1.5 border-t px-3.5 py-2.5 text-xs text-muted-foreground">
-            {allSteps(run.steps)
-              .filter((s) => s.agent)
-              .map((s) => {
-                const state = stepState(run, s.id)
-                return (
-                  <span key={s.id} className="flex items-center gap-1.5">
-                    <Dot state={state} />
-                    <span className="text-foreground">{s.agent}</span>
-                    {STATE_LABEL[state].toLowerCase()}
-                  </span>
-                )
-              })}
+            {workers(run).map((w) => {
+              const state = stepState(run, w.stepId)
+              return (
+                <span key={w.key} className="flex items-center gap-1.5">
+                  <Dot state={state} />
+                  <span className="text-foreground">{w.agent}</span>
+                  {STATE_LABEL[state].toLowerCase()}
+                </span>
+              )
+            })}
           </div>
           <RunBoard run={run} />
         </div>
